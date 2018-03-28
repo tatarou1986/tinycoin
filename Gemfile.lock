@@ -1,0 +1,15 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    eventmachine (1.2.5)
+    log4r (1.1.10)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  eventmachine
+  log4r
+
+BUNDLED WITH
+   1.16.1
