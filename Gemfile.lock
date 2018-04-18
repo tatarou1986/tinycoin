@@ -2,8 +2,22 @@ GEM
   remote: https://rubygems.org/
   specs:
     bindata (2.4.3)
+    diff-lcs (1.3)
     eventmachine (1.2.5)
     log4r (1.1.10)
+    rspec (3.7.0)
+      rspec-core (~> 3.7.0)
+      rspec-expectations (~> 3.7.0)
+      rspec-mocks (~> 3.7.0)
+    rspec-core (3.7.1)
+      rspec-support (~> 3.7.0)
+    rspec-expectations (3.7.0)
+      diff-lcs (>= 1.2.0, < 2.0)
+      rspec-support (~> 3.7.0)
+    rspec-mocks (3.7.0)
+      diff-lcs (>= 1.2.0, < 2.0)
+      rspec-support (~> 3.7.0)
+    rspec-support (3.7.1)
 
 PLATFORMS
   ruby
@@ -12,6 +26,7 @@ DEPENDENCIES
   bindata
   eventmachine
   log4r
+  rspec
 
 BUNDLED WITH
    1.16.1

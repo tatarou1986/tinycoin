@@ -1,7 +1,10 @@
 require 'bundler/setup'
 Bundler.require
 
-module Tinycoin::Coren
+require 'digest/sha2'
+require 'json'
+
+module Tinycoin::Core
   MAGICK_HEADER = 0x11451419
   EVENT_INTERVAL = 10
   MAX_CONNECTIONS = 4
@@ -32,7 +35,7 @@ module Tinycoin::Coren
     def add_block(prev_hash, newblock)
       block = find_block_by_hash(prev_hash)
       
-      raise NoAvailableBlockFound if block == nil
+      raise Tinycoin::Errors::NoAvailableBlockFound if block == nil
       block.next << newblock
       
       find_winner_block_head(true)
@@ -165,9 +168,9 @@ module Tinycoin::Coren
         prev_hash        = blockchain.winner_block_head.to_sha256hash_s()
         prev_height      = blockchain.winner_block_head.height
 
-        d = Tinycoin::BulkBlock.new(nonce: nonce, block_id: prev_height + 1,
-                                    time: inttime, bits: bits,
-                                    prev_hash: prev_hash_binary, strlen: 0, payloadstr: "")
+        d = Tinycoin::Types::BulkBlock.new(nonce: nonce, block_id: prev_height + 1,
+                                           time: inttime, bits: bits,
+                                           prev_hash: prev_hash_binary, strlen: 0, payloadstr: "")
         h = Digest::SHA256.hexdigest(Digest::SHA256.digest(d.to_binary_s)).to_i(16)
         
         if h <= t
@@ -248,7 +251,7 @@ module Tinycoin::Coren
 
     def self.parse_json(jsonstr)
       jsonhash = JSON.parse(jsonstr)
-      raise InvalidUnknownFormat if not jsonhash["type"] == "block"
+      raise Tinycoin::Errors::InvalidUnknownFormat if not jsonhash["type"] == "block"
       obj = self.new
       begin
         obj.height    = jsonhash["height"]
@@ -261,7 +264,7 @@ module Tinycoin::Coren
         obj.next      = []
         obj.hash      = nil
       rescue KeyError => e
-        raise InvalidFieldFormat
+        raise Tinycoin::Errors::InvalidFieldFormat
       end
       return obj
     end
@@ -292,9 +295,9 @@ module Tinycoin::Coren
 
     private    
     def generate_blkblock
-      @blkblock ||= Tinycoin::BulkBlock.new(block_id: @height, time: @time, bits: @bits,
-                                            prev_hash: @prev_hash, strlen: @jsonstr.size(),
-                                            payloadstr: @jsonstr, nonce: @nonce)
+      @blkblock ||= Tinycoin::Types::BulkBlock.new(block_id: @height, time: @time, bits: @bits,
+                                                   prev_hash: @prev_hash, strlen: @jsonstr.size(),
+                                                   payloadstr: @jsonstr, nonce: @nonce)
       return @blkblock
     end
 
@@ -315,9 +318,9 @@ module Tinycoin::Coren
       until found        
         $stdout.print sprintf("trying... %d \r", nonce)
         
-        d = Tinycoin::BulkBlock.new(nonce: nonce, block_id: 0,
-                                    time: inttime, bits: GENESIS_BITS,
-                                    prev_hash: 0, strlen: 0, payloadstr: "")
+        d = Tinycoin::Types::BulkBlock.new(nonce: nonce, block_id: 0,
+                                           time: inttime, bits: GENESIS_BITS,
+                                           prev_hash: 0, strlen: 0, payloadstr: "")
         h = Digest::SHA256.hexdigest(Digest::SHA256.digest(d.to_binary_s)).to_i(16)
 
         if h <= t
