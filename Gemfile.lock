@@ -1,6 +1,7 @@
 GEM
   remote: https://rubygems.org/
   specs:
+    bindata (2.4.3)
     eventmachine (1.2.5)
     log4r (1.1.10)
 
@@ -8,6 +9,7 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
+  bindata
   eventmachine
   log4r
 
