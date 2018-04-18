@@ -206,26 +206,29 @@ module Tinycoin::Node
         ## この場合、自分が知らない新しいブロックをもってそうなので取得してみる
         ##  send_data(data)
         ##end
+        ## log.debug { "aaaaaaaaaaaaaaaaaa" }
         node.send_ping
       }
 
       ## 上のsend_helloを送り終わった時点で、おそらく相手がもっているheightが最新に更新されているはず
       
-
       ## 2. 他のノードに自分のheight以上のブロックをもっているかどうか問い合わせる
       @connections.select{|conn| conn.out? }.each{|node|
         data = Packet.new()
-##        send_data(data)
+        ##        send_data(data)
       }
     end
 
+    # もし、コネクションが外れていたら、自動的に再接続する
     def connect_to_others
-      log.info { "registered (#{@networks.size}) nodes #{@networks}" }
       @networks.each{|net|
         ip   = net[:ip]
         port = net[:port].to_i
-        log.info { "try to connect #{net}" } 
-        EM.connect(ip, port.to_i, ConnectionHandler, NodeInfo.new(ip, port), @connections, :out)
+        unless @connections.any? {|conn| conn.info.sockaddr[0] == ip && conn.info.sockaddr[1] == port }
+          # コネクションがまだ存在していない場合
+          log.info { "connecting to #{net}" }
+          EM.connect(ip, port.to_i, ConnectionHandler, NodeInfo.new(ip, port), @connections, :out)
+        end
       }
     end
 
@@ -236,7 +239,10 @@ module Tinycoin::Node
         trap("INT") { EM.stop }
         EM.start_server("0.0.0.0", PORT, ConnectionHandler, NodeInfo.new("0.0.0.0", PORT), @connections, :in)
 
-        connect_to_others
+        EM.add_periodic_timer(1) do
+          connect_to_others
+        end
+        
       end
     end
   end
