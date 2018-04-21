@@ -1,6 +1,19 @@
 require 'spec_helper'
 
 describe Tinycoin do
+#   context "when a connection handler has been given" do
+#     it 'should generate a packet as json' do
+#       node = Tinycoin::Node::NodeInfo.new("0.0.0.0", 9999)
+#       connections = []
+#       conn = Tinycoin::Node::ConnectionHandler.new(node, connections, nil)
+#       expected_json_str=<<JSON
+# {"type":"block","height":0,"prev_hash":"0000000000000000000000000000000000000000000000000000000000000000","nonce":8826,"bit":520093695,"time":1461025176,"jsonstr":""}
+# JSON
+#       json = conn.make_command_to_json("ping", height: 10, highest_hash: "0xfffffffffffff")
+#       expect(json).to eq(expected_json_str)
+#     end
+#   end
+  
   context "when the genesis hash has been given" do
     before do
       @genesis = Tinycoin::Core::Block.new_genesis()

@@ -7,6 +7,7 @@ module Tinycoin
   autoload :Core, "./blockchain.rb"
   autoload :Types, "./block.rb"
   autoload :Logger, "./logger.rb"
+  autoload :Miner, "./miner.rb"
 
   def self.create(config_path)
     main = Node::Main.new(config_path)

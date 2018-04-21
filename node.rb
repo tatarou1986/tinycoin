@@ -6,7 +6,7 @@ require 'yaml'
 require 'socket'
 require 'json'
 
-MAGICK_STRING = "!tinychain"
+MAGICK_STRING = "!$tinycoin"
 VERSION_NUM   = 1
 
 module Tinycoin::Node
@@ -23,17 +23,9 @@ module Tinycoin::Node
     attr_accessor :height
     attr_accessor :highest_hash
     
-    def to_s
-      "ip: #{sockaddr[0]}, port: #{sockaddr[1]}"
-    end
-
-    def to_hash
-      {ip: @sockaddr[0], port: @sockaddr[1]}.to_hash
-    end
-
-    def initialize(ip, port)
-      @sockaddr = [ip, port]
-    end
+    def to_s; "ip: #{sockaddr[0]}, port: #{sockaddr[1]}"; end
+    def to_hash; {ip: @sockaddr[0], port: @sockaddr[1]}.to_hash; end
+    def initialize(ip, port); @sockaddr = [ip, port]; end
   end
 
   class ConnectionHandler < EM::Connection
@@ -41,6 +33,10 @@ module Tinycoin::Node
     attr_accessor :connected
     attr_accessor :connections
     attr_reader :type
+    
+    attr_accessor :tx_store    # 送られてきたトランザクションの管理
+    attr_accessor :blockchain  # ブロックチェーンの管理
+    attr_accessor :miner       # 採掘管理
     
     private :connections
 
@@ -97,6 +93,7 @@ module Tinycoin::Node
         @info.height       = json["height"]
         @info.highest_hash = json["highest_hash"]
         log.debug { "receive ping #{@info.height}: #{@info.highest_hash}" }
+        send_pong
       when 'pong'
         # (自分が打ったであろう) pingの返答が来た
         log.debug { "receive pong" }
@@ -126,6 +123,10 @@ module Tinycoin::Node
     end
 
     def send_pong
+      log.debug { "pong -> #{self}" }
+      json = make_command_to_json("pong", height: 10, highest_hash: "0xfffffffffffff")
+      pkt = make_packet(json)
+      send_data(pkt.to_binary_s)
     end
 
     def send_request_block(height)
@@ -148,13 +149,13 @@ module Tinycoin::Node
   end
 
   class Main
-    EVENT_INTERVAL = 1
+    MAIN_LOOP_INTERVAL    = 1
+    MINING_START_INTERVAL = 3 # 起動してからマイニングが開始されるまでの待機時間 (秒)
     PORT = 9999
-
-    attr_accessor :networks    # configに記載されている他のノードへの接続情報（自分自身を除く）
+    
     attr_accessor :height
-    attr_accessor :timer
     attr_accessor :connections # 自分が接続している他のノードへのハンドラ一覧
+    attr_reader :blockchain
     
     def log
       @log ||= Tinycoin::Logger.create("main")
@@ -162,16 +163,24 @@ module Tinycoin::Node
     end
 
     def initialize config_path
-      @timer = nil
+      @networks    = []  # configに記載されている他のノードへの接続情報（自分自身を除く）
+      @main_loop_timer = nil
+      
       @connections = []
       @height = 0
-      @networks = []
+      
+      # blockchain周り。genesis (創始) blockや、blockchainを表すclassなど
+      @genesis    = Tinycoin::Core::Block.new_genesis
+      @blockchain = Tinycoin::Core::BlockChain.new(@genesis)
+      @miner      = Tinycoin::Miner.new(@genesis, @blockchain, nil) # TODO: tx_poolがnilなので実装しないと
+      @mining_start_time = nil
 
       log.debug { "loading networks..."  }
       read_config(config_path)
     end
 
     def get_ip if_name
+      # ipv4にしか対応していない
       Socket.getifaddrs.select{|x|
         x.name == if_name and x.addr.ipv4?
       }.first.addr.ip_address
@@ -193,11 +202,11 @@ module Tinycoin::Node
     end
 
     def start_timer
-      @timer = EM.add_periodic_timer(EVENT_INTERVAL, method("main_loop"))
+      @main_loop_timer = EM.add_periodic_timer(MAIN_LOOP_INTERVAL, method("worker_main_loop"))
     end
 
-    ## メインループ
-    def main_loop
+    # メインループ
+    def worker_main_loop
       ## 1. 他のノードが自分より大きなHeightをもっているかチェックする
       @connections.select{|conn| conn.out? }.each{|node|
         ## TODO エラー処理
@@ -225,7 +234,7 @@ module Tinycoin::Node
         ip   = net[:ip]
         port = net[:port].to_i
         unless @connections.any? {|conn| conn.info.sockaddr[0] == ip && conn.info.sockaddr[1] == port }
-          # コネクションがまだ存在していない場合
+          # コネクションがまだ存在していない場合のみ接続を試みる
           log.info { "connecting to #{net}" }
           EM.connect(ip, port.to_i, ConnectionHandler, NodeInfo.new(ip, port), @connections, :out)
         end
@@ -237,10 +246,30 @@ module Tinycoin::Node
         start_timer()
         log.info { "server start" }
         trap("INT") { EM.stop }
+        # serverを立ち上げる
         EM.start_server("0.0.0.0", PORT, ConnectionHandler, NodeInfo.new("0.0.0.0", PORT), @connections, :in)
 
+        # 他のTinycoinノードに接続開始
         EM.add_periodic_timer(1) do
+          # 接続が絶たれる可能性や、タイミング問題（つなぎに行ったけど、接続先のサーバがまだ立ち上がってない）
+          # などがあるので、タイマーで定期的に接続状態をチェックして、接続が確立していなければ再接続を促すようにする
           connect_to_others
+        end
+
+        # マイナー（採掘器）を起動
+        EM.add_timer(MINING_START_INTERVAL) do
+          unless @mining_start_time
+            @mining_start_time = Time.now
+            log.info { "start mining at: #{@mining_start_time} " }
+          end
+          
+          # 別スレッドでマイニング開始
+          EM.defer do
+            loop do
+              found = @miner.do_mining()
+              # TODO: nonceを使い果たした場合はBlockに含める時刻をずらしてnonce: 0からやり直す
+            end
+          end 
         end
         
       end
@@ -248,4 +277,3 @@ module Tinycoin::Node
   end
 
 end
-
