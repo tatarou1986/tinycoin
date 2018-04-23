@@ -6,4 +6,5 @@ module Tinycoin::Errors
   class InvalidRequest < StandardError; end
   class InvalidBlock < StandardError; end
   class NoAvailableBlockFound < StandardError; end
+  class ChainBranchingDetected < StandardError; end
 end

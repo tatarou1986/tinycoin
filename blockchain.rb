@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 require 'bundler/setup'
 Bundler.require
 
@@ -9,6 +10,8 @@ module Tinycoin::Core
   POW_LIMIT = "00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
   POW_TARGET_TIMESPAN = 14 * 24 * 60 * 60 ## two weeks sec
   POW_DIFFICULTY_BLOCKSPAN = 2016 # blocks
+  # POW_TARGET_TIMESPAN = 120 ## two weeks sec
+  # POW_DIFFICULTY_BLOCKSPAN = 2 # blocks
 
   ## target: 0000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
   ## mining genesis hash time: 2016-04-19 09:19:36 +0900 (unixtime: 1461025176)
@@ -19,25 +22,94 @@ module Tinycoin::Core
   GENESIS_TIME  = 1461025176
 
   class BlockChain
-    attr_reader :root
-    attr_accessor :winner_block_head
-    attr_accessor :head_info_array
-
+    attr_reader :head_info_array
+    attr_reader :winner_block_head
+    
     def initialize genesis_block
-      @root = genesis_block
-      @winner_block_head = genesis_block
-      @head_info_array = [@root, 0, 0, @root.bits]
+      @root = genesis_block                         # 創始 (genesis) ブロック
+      @winner_block_head = genesis_block            # blockchainの一番新しいブロック
+      @head_info_array = [@root, 0, 0, @root.bits]  # [ブロック, height, difficulty再設定後からカウントしたheight, 現在の難易度]
+      @block_append_lock = Mutex.new
     end
 
-    def add_block(prev_hash, newblock)
+    def log
+      @log ||= Tinycoin::Logger.create("blockchain")
+      @log
+    end
+
+    # TOOD: lockを取らないとダメ!
+    def best_block; @block_append_lock.synchronize { @winner_block_head }; end
+    def current_difficulty; @block_append_lock.synchronize { @head_info_array[3] }; end
+    
+    # blockに含まれるトランザクションが正しいかどうか検証を行う
+    def validate_block_txs block
+      log.warn { "not implemented" }
+      true
+    end
+
+    # blockに含まれる difficulty (採掘難易度) が正しいかどうか検証を行う
+    def validate_block_diffictuly block
+      log.warn { "not implemented" }
+      true
+    end
+
+    def maybe_append_block_from_hash new_block_hash
+      @block_append_lock.synchronize {
+        block = Tinycoin::Core::Block.new_block_from_hash(new_block_hash, true)
+
+        # TODO: トランザクションの検証
+        validate_block_txs(block)
+        
+        # TODO: diffictulyの検証
+        validate_block_diffictuly(block)
+      }
+    end
+
+    # ブロックの追加を試す
+    # TODO: 要テスト
+    def maybe_append_block_from_json new_block_json
+      @block_append_lock.synchronize {
+        block = Tinycoin::Core::Block.parse_json(new_block_json, true)
+
+        # TODO: トランザクションの検証
+        validate_block_txs(block)
+        
+        # TODO: diffictulyの検証
+        validate_block_diffictuly(block)
+      }
+    end
+
+    def maybe_append_block prev_hash, newblock, from_miner = false
+      @block_append_lock.synchronize { add_block(prev_hash, newblock, from_miner) }
+    end
+
+    # blockを追加する。(miner) 自分が採掘したblockを追加する場合か
+    # 他のノードからのブロック追加なのかでblock追加成功条件が変わる
+    def add_block prev_hash, newblock, from_miner = false
       block = find_block_by_hash(prev_hash)
       
       raise Tinycoin::Errors::NoAvailableBlockFound if block == nil
-      block.next << newblock
       
-      find_winner_block_head(true)
-      
-      return newblock
+      # miner (自分が採掘したblock) からのblock追加の場合
+      # 自分から積極的にblockchainの分岐に加担するべきではないので
+      # 分岐してしまう場合は、ブロック追加しない
+      if from_miner
+        if block.next.size == 0
+          block.next << newblock
+          find_winner_block_head(true) # bestBlockが更新されたかもしれないのでチェックする
+          return newblock
+        else
+          raise Tinycoin::Errors::ChainBranchingDetected
+        end
+      else
+        # minerからのブロック追加ではない場合（他ノードからのブロック追加）は
+        # 自分が無知なだけで、自分よりはるかに高いheightを持っているノードがいるかも知れないので
+        # 分岐するのはやむなしとして追加する
+        block.next << newblock
+        
+        find_winner_block_head(true) # bestBlockが更新されたかもしれないのでチェックする
+        return newblock
+      end
     end
 
     def find_winner_block_head(refresh = false)
@@ -91,6 +163,28 @@ module Tinycoin::Core
         ## has no branch
         return do_find_winner_block_head(block.next.first, depth,
                                          cumulative_depth, difficulty, latest_time)
+      end
+    end
+
+    def find_block_by_height(height)
+      do_find_block_by_height(@root, height)
+    end
+
+    def do_find_block_by_height(block, height)
+      return [block] if block.height == height
+
+      if block.next.size == 1 # このブロック
+        return do_find_block_by_height(block.next.first, height)
+      elsif block.next.size > 1
+        # ブロックが分岐している時は同一heightのBlockが複数あるので先にチェック
+        return block.next if block.next.first.height == height
+        block.next.each{|b|
+          tmp = do_find_block_by_height(b, height)
+          return tmp if tmp != nil # 見つかった!
+        }
+        return nil
+      else
+        return nil
       end
     end
     
@@ -193,24 +287,35 @@ module Tinycoin::Core
       return obj
     end
 
-    def self.parse_json(jsonstr)
+    def self.parse_json jsonstr, include_hash = false
       jsonhash = JSON.parse(jsonstr)
-      raise Tinycoin::Errors::InvalidUnknownFormat if not jsonhash["type"] == "block"
+      new_block_from_hash(jsonhash, include_hash)
+    end
+
+    def self.new_block_from_hash hashed_json, include_hash = false
+      raise Tinycoin::Errors::InvalidUnknownFormat if not hashed_json["type"] == "block"
       obj = self.new
-      begin
-        obj.height    = jsonhash["height"]
-        obj.prev_hash = jsonhash["prev_hash"].to_i(16)
-        obj.nonce     = jsonhash["nonce"]
-        obj.bits      = jsonhash["bits"]
-        obj.time      = jsonhash["time"]
-        obj.jsonstr   = jsonhash["jsonstr"]
-        obj.prev      = []
-        obj.next      = []
-        obj.hash      = nil
-      rescue KeyError => e
-        raise Tinycoin::Errors::InvalidFieldFormat
+      obj.height    = if hashed_json["height"] then hashed_json["height"] else raise Tinycoin::Errors::InvalidFieldFormat end
+      obj.prev_hash = if hashed_json["prev_hash"] then hashed_json["prev_hash"].to_i(16) else raise Tinycoin::Errors::InvalidFieldFormat end
+      obj.nonce     = if hashed_json["nonce"] then hashed_json["nonce"] else raise Tinycoin::Errors::InvalidFieldFormat end
+      obj.bits      = if hashed_json["bits"] then hashed_json["bits"] else raise Tinycoin::Errors::InvalidFieldFormat end
+      obj.time      = if hashed_json["time"] then hashed_json["time"] else raise Tinycoin::Errors::InvalidFieldFormat end
+      obj.jsonstr   = if hashed_json["jsonstr"] then hashed_json["jsonstr"] else raise Tinycoin::Errors::InvalidFieldFormat end
+      obj.prev      = []
+      obj.next      = []
+      obj.hash      = nil
+      if include_hash
+        hash = hashed_json["hash"].to_i(16)
+        raise Tinycoin::Errors::InvalidFieldFormat if hash == 0
+        raise Tinycoin::Errors::InvalidBlock unless validate_block_hash(obj, hashed_json["hash"])
+        obj.hash = hash
       end
       return obj
+    end
+    
+    def self.validate_block_hash block, hash_hexstr
+      truehash = Digest::SHA256.hexdigest(Digest::SHA256.digest(block.to_binary_s)).to_i(16)
+      truehash == hash_hexstr.to_i(16) ? true : false
     end
 
     def to_binary_s
@@ -232,9 +337,14 @@ module Tinycoin::Core
       @blkblock = @hash = nil
     end
 
-    def to_json
+    def to_hash
       {type: "block", height: @height, prev_hash: @prev_hash.to_s(16).rjust(64, '0'), 
-        nonce: @nonce, bit: @bits, time: @time, jsonstr: @jsonstr}.to_json
+        hash: to_sha256hash_s, 
+        nonce: @nonce, bits: @bits, time: @time, jsonstr: @jsonstr}
+    end
+
+    def to_json
+      to_hash.to_json
     end
 
     private

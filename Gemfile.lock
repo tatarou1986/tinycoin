@@ -1,3 +1,10 @@
+GIT
+  remote: https://github.com/lian/bitcoin-ruby
+  revision: a3fffe07505ea8e0c11dac548ae0dda0f8168f12
+  branch: master
+  specs:
+    bitcoin-ruby (0.0.18)
+
 GEM
   remote: https://rubygems.org/
   specs:
@@ -24,6 +31,7 @@ PLATFORMS
 
 DEPENDENCIES
   bindata
+  bitcoin-ruby!
   eventmachine
   log4r
   rspec

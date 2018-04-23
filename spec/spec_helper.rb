@@ -12,12 +12,14 @@ module Tinycoin
     attr_accessor :prev_hash
     attr_accessor :hash
     attr_accessor :bits
+    attr_reader   :height
 
-    def initialize(prev_hash, hash)
+    def initialize(prev_hash, hash, height = 1)
       @prev_hash = prev_hash
       @hash      = hash
       @next      = []
       @bits      = 0x1effffff
+      @height    = height
     end
 
     def to_sha256hash_s()

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 require 'spec_helper'
 
 describe Tinycoin do
@@ -7,7 +8,7 @@ describe Tinycoin do
 #       connections = []
 #       conn = Tinycoin::Node::ConnectionHandler.new(node, connections, nil)
 #       expected_json_str=<<JSON
-# {"type":"block","height":0,"prev_hash":"0000000000000000000000000000000000000000000000000000000000000000","nonce":8826,"bit":520093695,"time":1461025176,"jsonstr":""}
+# {"type":"block","height":0,"prev_hash":"0000000000000000000000000000000000000000000000000000000000000000","nonce":8826,"bits":520093695,"time":1461025176,"jsonstr":""}
 # JSON
 #       json = conn.make_command_to_json("ping", height: 10, highest_hash: "0xfffffffffffff")
 #       expect(json).to eq(expected_json_str)
@@ -33,10 +34,12 @@ describe Tinycoin do
 
     describe '#to_json' do
       it 'should convert the genesis block to json' do
+        g = Tinycoin::Core::Block.new_genesis()
+
         jsonstr=<<JSON
-{"type":"block","height":0,"prev_hash":"0000000000000000000000000000000000000000000000000000000000000000","nonce":8826,"bit":520093695,"time":1461025176,"jsonstr":""}
+{"type":"block","height":0,"prev_hash":"0000000000000000000000000000000000000000000000000000000000000000","hash":"#{g.to_sha256hash_s}","nonce":8826,"bits":520093695,"time":1461025176,"jsonstr":""}
 JSON
-        jsonstr.chomp!
+        jsonstr = JSON.parse(jsonstr).to_json
         expect(@genesis.to_json).to eq(jsonstr)
       end
     end
@@ -63,9 +66,33 @@ JSON
 
   context "when a bad json has been given" do
     describe "#parse_json" do
-      it 'should be raise a error' do
+      it 'should be raise a error 1' do
         json = "{\"type\" : \"aaaa\"}"        
         expect{ Tinycoin::Core::Block.parse_json(json) }.to raise_error(Tinycoin::Errors::InvalidUnknownFormat)
+      end
+
+      it 'should be raise a error 2' do
+        orig_block = Tinycoin::Core::Block.new_block(prev_hash = "0000000000000000000000000000000000000000000000000000000000000000", 
+                                                     nonce     = 1264943, 
+                                                     bits      = 26229296,
+                                                     time      = 1458902575, 
+                                                     height    = 0, 
+                                                     payloadstr = "")
+        orig_block_hash_str = orig_block.to_sha256hash_s
+        
+        # 重要なフィールドが足りないjson
+        json=<<JSON
+{ 
+  "type": "block",
+  "height": 0,
+  "hash": "#{orig_block_hash_str}",
+  "nonce": 1264943,
+  "bits": 26229296,
+  "time": 1458902575,
+  "jsonstr": ""
+}
+JSON
+        expect{ Tinycoin::Core::Block.parse_json(json) }.to raise_error(Tinycoin::Errors::InvalidFieldFormat)
       end
     end
   end
@@ -73,29 +100,65 @@ JSON
   context "when a good json has been given" do
     describe "#parse_json" do
       it 'should accept the json string' do
+        orig_block = Tinycoin::Core::Block.new_block(prev_hash = "0000000000000000000000000000000000000000000000000000000000000000", 
+                                                     nonce     = 1264943, 
+                                                     bits      = 26229296,
+                                                     time      = 1458902575, 
+                                                     height    = 0, 
+                                                     payloadstr = "")
+        orig_block_hash_str = orig_block.to_sha256hash_s
+
+        
         jsonstr=<<JSON
 { 
   "type": "block",
   "height": 0,
   "prev_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+  "hash": "#{orig_block_hash_str}",
   "nonce": 1264943,
-  "bit": 26229296,
+  "bits": 26229296,
   "time": 1458902575,
   "jsonstr": ""
 }
 JSON
-        block = Tinycoin::Core::Block.parse_json(jsonstr)
-        expect(block.prev_hash).to eq(0)
-        expect(block.height).to eq(0)
-        expect(block.nonce).to eq(1264943)
-        expect(block.time).to eq(1458902575)
-        expect(block.jsonstr).to eq("")
+        test_block = Tinycoin::Core::Block.parse_json(jsonstr)
+        expect(test_block.prev_hash).to eq(0)
+        expect(test_block.height).to eq(0)
+        expect(test_block.nonce).to eq(1264943)
+        expect(test_block.time).to eq(1458902575)
+        expect(test_block.bits).to eq(26229296)
+        expect(test_block.jsonstr).to eq("")
+        expect(test_block.to_sha256hash_s).to eq(orig_block_hash_str)
+      end
+
+      it 'should deny the json string if the hash field is invalid' do
+        orig_block = Tinycoin::Core::Block.new_block(prev_hash = "0000000000000000000000000000000000000000000000000000000000000000", 
+                                                     nonce     = 1264943, 
+                                                     bits      = 26229296,
+                                                     time      = 1458902575, 
+                                                     height    = 0, 
+                                                     payloadstr = "")
+        orig_block_hash_str = orig_block.to_sha256hash_s
+
+        # hashフィールドが不正
+        jsonstr=<<JSON
+{ 
+  "type": "block",
+  "height": 0,
+  "prev_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+  "hash": "ffffffffffffffffffffffffffff",
+  "nonce": 1264943,
+  "bits": 26229296,
+  "time": 1458902575,
+  "jsonstr": ""
+}
+JSON
+        expect{ Tinycoin::Core::Block.parse_json(jsonstr, true) }.to raise_error(Tinycoin::Errors::InvalidBlock)
       end
     end
   end 
 
-  describe "BlockChain" do  
-
+  describe "BlockChain" do
     before :each do
       @hash = []      
       @hash[0] = "0000000000000000000000000000000000000000000000000000000000000000"
@@ -111,7 +174,7 @@ JSON
       @hash[10] = "0000000000000000000000000000000000000000000000000000000000000010"
       
       
-      @genesis_block = Tinycoin::TestBlock.new(@hash[0], @hash[1])      
+      @genesis_block = Tinycoin::TestBlock.new(@hash[0], @hash[1])
       @blockchain = Tinycoin::Core::BlockChain.new(@genesis_block)
     end
 
@@ -143,6 +206,29 @@ JSON
         end
       end
       
+
+      describe "#find_block_by_height" do
+        it 'should find out a block' do
+          block1 = Tinycoin::TestBlock.new(@hash[1], @hash[2], 2)
+          @blockchain.add_block(@hash[1], block1)
+          block2 = Tinycoin::TestBlock.new(@hash[2], @hash[3], 3)
+          @blockchain.add_block(@hash[2], block2)
+          block3 = Tinycoin::TestBlock.new(@hash[3], @hash[4], 4)
+          @blockchain.add_block(@hash[3], block3)
+          
+          ret = @blockchain.find_block_by_height(1)
+          expect(ret.first.to_sha256hash_s).to eq(@hash[1])
+
+          ret = @blockchain.find_block_by_height(2)
+          expect(ret.first.to_sha256hash_s).to eq(@hash[2])
+
+          ret = @blockchain.find_block_by_height(3)
+          expect(ret.first.to_sha256hash_s).to eq(@hash[3])
+
+          ret = @blockchain.find_block_by_height(4)
+          expect(ret.first.to_sha256hash_s).to eq(@hash[4])
+        end
+      end
     end
 
     context "when blockchain has branches" do
@@ -211,6 +297,59 @@ JSON
           
         end
       end
+
+      describe "#find_block_by_height" do
+        it 'should find out a block' do
+          block = Tinycoin::TestBlock.new(@hash[1], @hash[2], 2)
+          @blockchain.add_block(@hash[1], block)
+          block = Tinycoin::TestBlock.new(@hash[2], @hash[3], 3)
+          @blockchain.add_block(@hash[2], block)
+          block = Tinycoin::TestBlock.new(@hash[3], @hash[4], 4)
+          @blockchain.add_block(@hash[3], block)
+
+          ##
+          ## branch at the block 3
+          ##
+          block = Tinycoin::TestBlock.new(@hash[3], @hash[5], 4)
+          @blockchain.add_block(@hash[3], block)
+          block = Tinycoin::TestBlock.new(@hash[3], @hash[6], 4)
+          @blockchain.add_block(@hash[3], block)
+
+          ##
+          ## Winner!
+          ##
+          block = Tinycoin::TestBlock.new(@hash[6], @hash[7], 5)
+          @blockchain.add_block(@hash[6], block)
+          block = Tinycoin::TestBlock.new(@hash[7], @hash[8], 6)
+          @blockchain.add_block(@hash[7], block)
+
+          ret = @blockchain.find_block_by_height(2)
+          expect(ret.first.to_sha256hash_s).to eq(@hash[2])
+
+          ret = @blockchain.find_block_by_height(3)
+          expect(ret.first.to_sha256hash_s).to eq(@hash[3])
+
+          ret = @blockchain.find_block_by_height(4)
+          expect(ret.size).to eq(3)
+          expect(ret[0].to_sha256hash_s).to eq(@hash[4])
+          expect(ret[1].to_sha256hash_s).to eq(@hash[5])
+          expect(ret[2].to_sha256hash_s).to eq(@hash[6])
+
+          ret = @blockchain.find_block_by_height(5)
+          expect(ret.first.to_sha256hash_s).to eq(@hash[7])
+          
+          ret = @blockchain.find_block_by_height(6)
+          expect(ret.first.to_sha256hash_s).to eq(@hash[8])
+
+          ## 見つからない
+          ret = @blockchain.find_block_by_height(7)
+          expect(ret).to eq(nil)
+
+          ## 見つからない
+          ret = @blockchain.find_block_by_height(9)
+          expect(ret).to eq(nil)
+        end
+      end
     end
 
     context "when blockchain has branches" do
@@ -224,3 +363,4 @@ JSON
     
   end
 end
+
