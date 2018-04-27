@@ -4,7 +4,7 @@ module Tinycoin
   autoload :Errors, "errors.rb"
   autoload :Node, "node.rb"
   autoload :Core, "blockchain.rb"
-  autoload :Types, "block.rb"
+  autoload :Types, "types.rb"
   autoload :Logger, "logger.rb"
   
   class TestBlock
