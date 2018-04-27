@@ -7,7 +7,15 @@ require 'json'
 
 module Tinycoin::Core
   autoload :Block, "./block.rb"
+
+  # トランザクション自体を表すクラス
   autoload :Tx, "./tx.rb"
+
+  # トランザクションの検証器
+  autoload :TxValidator, "./tx.rb"
+
+  # ウォレット（財布）の管理
+  autoload :Wallet, "./wallet.rb"
   
   MINING_EVENT_INTERVAL = 0
   POW_LIMIT = "00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
