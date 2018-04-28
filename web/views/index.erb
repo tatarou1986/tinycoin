@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ja">
+    <head>
+        <meta charset="UTF-8">
+        <title>Tinycoin</title>
+        <script type="text/javascript" src="/js/jquery-3.3.1.min.js"></script>
+    </head>
+    <body style="width:60%;margin:0 auto;text-align:center;">
+        <h1>自作仮想通貨</h1>
+        <div class="mywallet-form">
+            <h3>Wallet</h3>
+            <input id="getwallet" type="button" value="Walletを生成" />
+            <input type="text" id="mywallet" name="mywallet" placeholder="送信先アドレス" value="" readonly="readonly">
+        </div>
+        
+        <div class="send-form">
+            <label for="to_address">from</label>
+            <input type="text" id="to_address" name="to_address" placeholder="送信先アドレス">
+            
+            <label for="amount">to</label>
+            <input type="number" id="amount" name="amount" placeholder="送金額"/>
+            <input id="send-money" type="button" value="送金する" />
+        </div>
+        <div class="txs-view">
+            <div id="txs">
+                <% @txs.each do |t| %>
+                    <p><%= escape_html "#{t.body} by #{t.user_id}" %></p>
+                <% end %>
+            </div>
+        </div>
+        <script type="text/javascript">
+         function escapeHTML(s) {
+             return $('<div>').text(s).html();
+         }
+         $(function(){
+             // トランザクション取得用定期実行
+             setInterval(function(){
+                 var request = $.ajax({
+                     type: 'GET',
+                     url: "/txs",
+                     data: {
+                         
+                     }
+                 });
+             }, 3000);
+         
+             // 送金処理
+             $("#send-money").click(function(){
+                 var from_address = $('#mywallet').val();
+                 var to_address = $("#to_address").val();
+                 var amount = $("#user_id").val();
+                 if (from_address == "") {
+                     alert("送金の前に、Walletを生成してください")
+                     return;
+                 }
+                 var request = $.ajax({
+                     type: "POST",
+                     url: "/send",
+                     data: {
+                         to: comment,
+                         user_id:  userId
+                     }
+                 });
+                 request.done(function(msg){
+                     console.log(this);
+                     $.ajax({
+                         type: "GET",
+                         url: "/txs"
+                     }).done(function( res ){
+                         alert("not implemented")
+                         $("#comments").prepend('<p>' + escapeHTML(res.body) + ' by ' + escapeHTML(res.user_id) + '</p>');
+                     });
+                 });
+             });
+         });
+        </script>
+    </body>
+</html>

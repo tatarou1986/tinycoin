@@ -5,11 +5,16 @@ Bundler.require
 require 'yaml'
 require 'socket'
 require 'json'
+require 'sinatra/base'
+require 'thin'
 
 MAGICK_STRING = "!$tinycoin"
 VERSION_NUM   = 1
 
 module Tinycoin::Node
+  # webのインタフェイス
+  autoload :Web, "./web/web.rb"
+  
   class Packet < BinData::Record
     endian :little
     string :magic, :length => MAGICK_STRING.length()
@@ -63,6 +68,7 @@ module Tinycoin::Node
       @connections = connections
       @type = type
     end
+    
 
     def make_packet(json)
       Packet.new(magic: MAGICK_STRING,
@@ -201,7 +207,10 @@ module Tinycoin::Node
     }
     
     MINING_START_INTERVAL = 3 # 起動してからマイニングが開始されるまでの待機時間 (秒)
-    PORT = 9999
+    PORT       = 9999
+    WEB_PORT   = 8080
+    WEB_SERVER = 'thin'
+    WEB_HOST   = '0.0.0.0'
     
     attr_accessor :height
     attr_accessor :connections # 自分が接続している他のノードへのハンドラ一覧
@@ -306,6 +315,24 @@ module Tinycoin::Node
       }
     end
 
+    def start_web_server web
+      @web_dispatch = Rack::Builder.app do
+        map '/' do
+          run web
+        end
+      end
+
+      h = {
+        app:     @web_dispatch,
+        server:  WEB_SERVER,
+        Host:    WEB_HOST,
+        Port:    WEB_PORT,
+        signals: false,
+      }
+
+      Rack::Server.start(h)
+    end
+
     def start
       EM.run do
         start_timers
@@ -314,6 +341,13 @@ module Tinycoin::Node
         # serverを立ち上げる
         EM.start_server("0.0.0.0", PORT, ConnectionHandler, NodeInfo.new("0.0.0.0", PORT), @connections, :in, self)
 
+        @web = Tinycoin::Node::Web.new
+
+        # Webサーバを立ち上げる
+        EM.defer do
+          start_web_server @web
+        end
+        
         # マイナー（採掘器）を起動
         EM.add_timer(MINING_START_INTERVAL) do
           unless @mining_start_time
@@ -324,7 +358,7 @@ module Tinycoin::Node
           # 別スレッドでマイニング開始
           EM.defer do
             loop do
-              found = @miner.do_mining()
+              found = @miner.do_mining
               # TODO: nonceを使い果たした場合はBlockに含める時刻をずらしてnonce: 0からやり直す
             end
           end 
