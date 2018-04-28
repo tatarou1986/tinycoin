@@ -43,3 +43,20 @@ data["networks"].each_with_index {|node, i|
     end
   end
 }
+
+data["networks"].each_with_index {|node, i|
+  ip   = node["ip"]
+  port = node["port"]
+  cmd = "scp -r ../* #{USER}@#{ip}:#{TARGET_PATH}/"
+  exit_status = SafePty.spawn(cmd) do |r, w, pid|
+    # r.expect(/yes\/no/, 10) {
+    #   w.puts 'yes'
+    # }p
+    r.expect(/^\w+/, 10){
+      w.puts PASS
+    }
+    until r.eof? do
+      puts r.readline
+    end
+  end
+}

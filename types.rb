@@ -13,4 +13,13 @@ module Tinycoin::Types
     string :payloadstr, :read_length => :strlen
     uint64 :nonce
   end
+
+  class BulkTx < BinData::Record
+    endian :little
+    uint32 :signer_pubkey_size, :value => lambda { signer_pubkey.length }
+    array  :signer_pubkey, :type => :uint8
+    uint32 :signature_size, :value => lambda { signature.length }
+    array  :signature, :type => :uint8
+    uint64 :amount
+  end
 end
