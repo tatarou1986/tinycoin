@@ -246,7 +246,6 @@ module Tinycoin::Node
       data = File.open(config_path, 'r') {|f|
         YAML.load(f)
       }
-      addrs = Socket.getifaddrs # 自分のipアドレス一覧を得る
       data["networks"].each_with_index {|node, i|
         ip   = node["ip"]
         port = node["port"].to_i
