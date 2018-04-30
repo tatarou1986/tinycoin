@@ -4,6 +4,7 @@ module Tinycoin::Core
     
     OP_CODES =
       [
+       "OP_DUP",
        "OP_PUSH",
        "OP_RETURN"
       ]
@@ -48,6 +49,12 @@ module Tinycoin::Core
 
     def op_return stack, rest_script
       stack << "true"
+      rest_script
+    end
+
+    def op_dup stack, rest_script
+      tgt = stack.first.dup
+      stack << tgt
       rest_script
     end
 

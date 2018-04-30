@@ -21,6 +21,16 @@ describe "Tinycoin::Core::VM" do
     expect(@vm.ret_true?).to eq(true)
   end
 
+  it 'should execute the opcode OP_RETURN' do
+    script = "OP_PUSH hello OP_DUP"
+    @vm = Tinycoin::Core::VM.new
+    parsed = Tinycoin::Core::Script.parse(script)
+    @vm.execute!(parsed)
+    expect(@vm.stack.size).to eq(2)
+    expect(@vm.stack[0]).to eq("hello")
+    expect(@vm.stack[1]).to eq("hello")
+  end
+
   it 'should get invalid opcode error' do
     @vm = Tinycoin::Core::VM.new
     script = "OP_INVALID test"
