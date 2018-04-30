@@ -1,21 +1,12 @@
 # -*- coding: utf-8 -*-
 module Tinycoin::Core
   class Tx
-    attr_reader :in_tx
-    attr_reader :out_tx
+    attr_accessor :in_tx
+    attr_accessor :out_tx
     attr_reader :signature
     attr_reader :hash
     attr_reader :signer_pubkey
     attr_reader :amount
-
-    # def self.new_tx signer_pubkey_hexstr, amount
-    # end
-
-    def add_in_tx tx
-    end
-
-    def add_out_tx tx
-    end
     
     def do_sign! privkey_hex
       privkey_bin = [privkey_hex].pack("H*")

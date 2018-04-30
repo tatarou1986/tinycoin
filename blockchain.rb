@@ -16,6 +16,12 @@ module Tinycoin::Core
 
   # ウォレット（財布）の管理
   autoload :Wallet, "./wallet.rb"
+
+  # ブロックチェーン上に乗るScriptの実装
+  autoload :Script, "./script.rb"
+  
+  # 仮想マシン
+  autoload :VM, "./vm.rb"
   
   MINING_EVENT_INTERVAL = 0
   POW_LIMIT = "00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
@@ -31,6 +37,8 @@ module Tinycoin::Core
   GENESIS_NONCE = 8826
   GENESIS_BITS  = 0x1effffff
   GENESIS_TIME  = 1461025176
+
+  MINER_REWARD_AMOUNT = 1
 
   class BlockChain
     attr_reader :head_info_array
