@@ -12,7 +12,7 @@ module Tinycoin::Core
   autoload :Tx, "./tx.rb"
 
   # トランザクションの検証器
-  autoload :TxValidator, "./tx.rb"
+  autoload :TxValidator, "./tx_validator.rb"
 
   # ウォレット（財布）の管理
   autoload :Wallet, "./wallet.rb"
@@ -54,6 +54,10 @@ module Tinycoin::Core
     
     # blockに含まれるトランザクションが正しいかどうか検証を行う
     def validate_block_txs block
+      # block.each {|tx|
+      #   # txはここでシリアライズすべき？
+      #   # 多分まだ
+      # }
       log.warn { "not implemented" }
       true
     end

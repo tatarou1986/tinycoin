@@ -11,10 +11,9 @@ end
 
 describe "Tinycoin::Core::Tx" do
   it 'should generate a new tx' do
-    priv_key, pub_key = generate_key_pair
-    tx = Tinycoin::Core::Tx.new(pub_key, 10)
-    tx.do_sign!(priv_key)
-    p tx.to_sha256hash_s
+    # priv_key, pub_key = generate_key_pair
+    # tx = Tinycoin::Core::Tx.new(pub_key, 10)
+    # p tx.do_sign!(priv_key)
+    # p tx.to_sha256hash_s
   end
 end
-

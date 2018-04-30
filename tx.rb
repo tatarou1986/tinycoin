@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 module Tinycoin::Core
   class Tx
     attr_reader :in_tx
@@ -16,8 +17,10 @@ module Tinycoin::Core
     def add_out_tx tx
     end
     
-    def do_sign! prikey_hex
-      @signer_pubkey = [signer_pubkey_hex].pack("H*")
+    def do_sign! privkey_hex
+      privkey_bin = [privkey_hex].pack("H*")
+      @signature = Bitcoin::Secp256k1.sign("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", privkey_bin)
+      @signature
     end
 
     def initialize signer_pubkey_hex, amount
@@ -43,9 +46,10 @@ module Tinycoin::Core
 
     private
     def generate_blktx
-      raise Tinycoin::Errors::NoSignedTx unless @signature
-      @blk_tx ||= Tinycoin::Types::BulkTx.new(signer_pubkey: @signer_pubkey,
-                                              signature: @signature,
+      #      raise Tinycoin::Errors::NoSignedTx unless @signature
+      pubkey = @signer_pubkey.unpack("C*")
+      @blk_tx ||= Tinycoin::Types::BulkTx.new(signer_pubkey: pubkey,
+                                              signature: [],
                                               amount: @amount)
       @blk_tx
     end
