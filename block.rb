@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 module Tinycoin::Core
   class Block
     attr_accessor :prev_hash
@@ -77,7 +78,7 @@ module Tinycoin::Core
       truehash = Digest::SHA256.hexdigest(Digest::SHA256.digest(block.to_binary_s)).to_i(16)
       truehash == hash_hexstr.to_i(16) ? true : false
     end
-
+    
     def add_tx_as_first tx
       @txs[0] = tx
     end

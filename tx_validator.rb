@@ -1,8 +1,46 @@
 # -*- coding: utf-8 -*-
 module Tinycoin::Core
   class TxValidator
-    
-    def validate pubkey_hex_str, tx
+
+    # txidがvalidかどうかチェックする
+    # +tx+ jsonからパース済みのTxインスタンス
+    def self.validate_txs txs
+      wallet = Tinycoin::Core::Wallet.new
+
+      # txsが0ということはありえない。少なくともcoinbaseは含む
+      raise Tinycoin::Errors::InvalidTx if txs.size == 0
+      
+      coinbase_processed = false
+      txs.each_with_index {|tx, i|
+        # scriptを走らせるVMを作成
+        vm  = Tinycoin::Core::VM.new
+        if tx.is_coinbase?
+          # coinbaseは2つ以上存在してはならない
+          raise Tinycoin::Errors::InvalidTx if coinbase_processed
+          # coinbaseは必ず一番目でなければならない
+          raise Tinycoin::Errors::InvalidTx unless i == 0
+          # coinbaseの場合は1コインのみ支払われる
+          raise Tinycoin::Errors::InvalidTx unless tx.out_tx.amount == 1
+          # addressがvalidであること
+          raise Tinycoin::Errors::InvalidTx if tx.out_tx.address.size == 0
+          raise Tinycoin::Errors::InvalidTx unless wallet.valid_address?(tx.out_tx.address)
+
+          # coinbaseは処理済み
+          coinbase_processed = true
+        else
+          # TODO coinbase以外
+          raise Tinycoin::Errors::InvalidTx
+        end
+
+        # トランザクションに含まれるスクリプトを実行
+        vm.execute!(Script.parse(tx.in_tx.script_sig))
+        vm.execute!(Script.parse(tx.out_tx.script_pubkey))
+
+        # スクリプトがtrueを返さなければ不正なトランザクション
+        raise Tinycoin::Errors::InvalidTx unless vm.ret_true?
+      }
+
+      return true
     end
 
     # 署名検証に使うECパラメータ使用のための一時的な鍵ペア生成関数

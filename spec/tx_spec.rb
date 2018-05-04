@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 require_relative 'spec_helper.rb'
 
 describe "Tinycoin::Core::TxValidator" do
@@ -55,6 +56,114 @@ describe "Tinycoin::Core::Tx" do
 end
 
 describe "Tinycoin::Core::TxValidator" do
+  it "should validate txs" do
+    orig_block = Tinycoin::Core::Block.new_block(prev_hash = "0000000000000000000000000000000000000000000000000000000000000000", 
+                                                 nonce     = 1264943, 
+                                                 bits      = 26229296,
+                                                 time      = 1458902575, 
+                                                 height    = 0, 
+                                                 payloadstr = "")
+    orig_block_hash_str = orig_block.to_sha256hash_s
+    
+    jsonstr=<<JSON
+{ 
+  "type": "block",
+  "height": 0,
+  "prev_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+  "hash": "#{orig_block_hash_str}",
+  "nonce": 1264943,
+  "bits": 26229296,
+  "time": 1458902575,
+  "txs" :[{"txid" : "1596d82958b4b5474565627bc40dd23f48aa50a375ba06b25e4b8ad953105f51",
+           "vin"  :{"type": "coinbase",
+                    "scriptSig" : {"asm": "OP_NOP"}},
+           "vout" :{"type"  : "coinbase",
+                    "value" : 1,
+                    "scriptPubKey" :{"asm": "OP_PUSH true", "address": "moDu6EtnGGpcTEkNZRJbytr9rJA4H49VRe" }}
+          }],
+  "jsonstr": ""
+}
+JSON
+    test_block = Tinycoin::Core::Block.parse_json(jsonstr)
+    ret = Tinycoin::Core::TxValidator.validate_txs(test_block.txs)
+    expect(ret).to eq(true)
+  end
+
+  it "should not validate that includes illegal fields 1" do
+    orig_block = Tinycoin::Core::Block.new_block(
+          prev_hash = "0000000000000000000000000000000000000000000000000000000000000000", 
+          nonce     = 1264943, 
+          bits      = 26229296,
+          time      = 1458902575, 
+          height    = 0, 
+          payloadstr = ""
+    )
+    orig_block_hash_str = orig_block.to_sha256hash_s
+
+    # coinbaseなのにvalueが2ある
+    jsonstr=<<JSON
+{ 
+  "type": "block",
+  "height": 0,
+  "prev_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+  "hash": "#{orig_block_hash_str}",
+  "nonce": 1264943,
+  "bits": 26229296,
+  "time": 1458902575,
+  "txs" :[{"txid" : "1596d82958b4b5474565627bc40dd23f48aa50a375ba06b25e4b8ad953105f51",
+           "vin"  :{"type": "coinbase",
+                    "scriptSig" : {"asm": "OP_NOP"}},
+           "vout" :{"type"  : "coinbase",
+                    "value" : 2,
+                    "scriptPubKey" :{"asm": "OP_PUSH true", "address": "moDu6EtnGGpcTEkNZRJbytr9rJA4H49VRe" }}
+          }],
+  "jsonstr": ""
+}
+JSON
+    test_block = Tinycoin::Core::Block.parse_json(jsonstr)
+    expect{ Tinycoin::Core::TxValidator.validate_txs(test_block.txs) }.to raise_error(Tinycoin::Errors::InvalidTx)
+  end
+
+  it "should not validate that includes illegal fields 2" do
+    orig_block = Tinycoin::Core::Block.new_block(
+          prev_hash = "0000000000000000000000000000000000000000000000000000000000000000", 
+          nonce     = 1264943, 
+          bits      = 26229296,
+          time      = 1458902575, 
+          height    = 0, 
+          payloadstr = ""
+    )
+    orig_block_hash_str = orig_block.to_sha256hash_s
+
+    # coinbaseが2つある
+    jsonstr=<<JSON
+{ 
+  "type": "block",
+  "height": 0,
+  "prev_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+  "hash": "#{orig_block_hash_str}",
+  "nonce": 1264943,
+  "bits": 26229296,
+  "time": 1458902575,
+  "txs" :[{"txid" : "1596d82958b4b5474565627bc40dd23f48aa50a375ba06b25e4b8ad953105f51",
+           "vin"  :{"type": "coinbase",
+                    "scriptSig" : {"asm": "OP_NOP"}},
+           "vout" :{"type"  : "coinbase",
+                    "value" : 2,
+                    "scriptPubKey" :{"asm": "OP_PUSH true", "address": "moDu6EtnGGpcTEkNZRJbytr9rJA4H49VRe" }}},
+         {"txid" : "1596d82958b4b5474565627bc40dd23f48aa50a375ba06b25e4b8ad953105f51",
+           "vin"  :{"type": "coinbase",
+                    "scriptSig" : {"asm": "OP_NOP"}},
+           "vout" :{"type"  : "coinbase",
+                    "value" : 2,
+                    "scriptPubKey" :{"asm": "OP_PUSH true", "address": "moDu6EtnGGpcTEkNZRJbytr9rJA4H49VRe" }}}
+  ],
+  "jsonstr": ""
+}
+JSON
+    test_block = Tinycoin::Core::Block.parse_json(jsonstr)
+    expect{ Tinycoin::Core::TxValidator.validate_txs(test_block.txs) }.to raise_error(Tinycoin::Errors::InvalidTx)
+  end
 end
 
 describe "Tinycoin::Core::BlockBuilder" do
