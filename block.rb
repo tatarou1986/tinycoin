@@ -49,24 +49,28 @@ module Tinycoin::Core
 
     def self.new_block_from_hash hashed_json, include_hash = false
       raise Tinycoin::Errors::InvalidUnknownFormat if not hashed_json["type"] == "block"
-      obj = self.new
-      obj.height    = if hashed_json["height"] then hashed_json["height"] else raise Tinycoin::Errors::InvalidFieldFormat end
-      obj.prev_hash = if hashed_json["prev_hash"] then hashed_json["prev_hash"].to_i(16) else raise Tinycoin::Errors::InvalidFieldFormat end
-      obj.nonce     = if hashed_json["nonce"] then hashed_json["nonce"] else raise Tinycoin::Errors::InvalidFieldFormat end
-      obj.bits      = if hashed_json["bits"] then hashed_json["bits"] else raise Tinycoin::Errors::InvalidFieldFormat end
-      obj.time      = if hashed_json["time"] then hashed_json["time"] else raise Tinycoin::Errors::InvalidFieldFormat end
-      obj.jsonstr   = if hashed_json["jsonstr"] then hashed_json["jsonstr"] else raise Tinycoin::Errors::InvalidFieldFormat end
-      obj.prev      = []
-      obj.next      = []
-      obj.hash      = nil
-      obj.txs       = if hashed_json["txs"] then Tx.parse_from_hashs(hashed_json["txs"]) else raise Tinycoin::Errors::InvalidFieldFormat end
-      if include_hash
-        hash = hashed_json["hash"].to_i(16)
-        raise Tinycoin::Errors::InvalidFieldFormat if hash == 0
-        raise Tinycoin::Errors::InvalidBlock unless validate_block_hash(obj, hashed_json["hash"])
-        obj.hash = hash
+      begin
+        obj = self.new
+        obj.height    = hashed_json.fetch("height")
+        obj.prev_hash = hashed_json.fetch("prev_hash").to_i(16)
+        obj.nonce     = hashed_json.fetch("nonce")
+        obj.bits      = hashed_json.fetch("bits")
+        obj.time      = hashed_json.fetch("time")
+        obj.jsonstr   = hashed_json.fetch("jsonstr")
+        obj.prev      = []
+        obj.next      = []
+        obj.hash      = nil
+        obj.txs       = Tx.parse_from_hashs(hashed_json.fetch("txs"))
+        if include_hash
+          hash = hashed_json["hash"].to_i(16)
+          raise Tinycoin::Errors::InvalidFieldFormat if hash == 0
+          raise Tinycoin::Errors::InvalidBlock unless validate_block_hash(obj, hashed_json["hash"])
+          obj.hash = hash
+        end
+        return obj
+      rescue KeyError
+        raise Tinycoin::Errors::InvalidFieldFormat
       end
-      return obj
     end
     
     def self.validate_block_hash block, hash_hexstr
