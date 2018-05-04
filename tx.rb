@@ -39,7 +39,7 @@ module Tinycoin::Core
     def initialize
 ##      @signer_pubkey = [signer_pubkey_hex].pack("H*")
       @in_tx = []
-      @in_out = []
+      @out_tx = []
     end
 
     def parse_tx_from_json json_str
