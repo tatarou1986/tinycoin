@@ -136,7 +136,7 @@ JSON
                     "scriptSig" : {"asm": "OP_NOP"}},
            "vout" :{"type"  : "coinbase",
                     "value" : 1,
-                    "scriptPubKey" :{"asm": "OP_PUSH true", "address": "" }}
+                    "scriptPubKey" :{"asm": "OP_PUSH true", "address": "moDu6EtnGGpcTEkNZRJbytr9rJA4H49VRe" }}
           }],
   "jsonstr": ""
 }
@@ -152,6 +152,9 @@ JSON
 
         expect(test_block.txs.size).to eq(1)
         expect(test_block.txs.first.is_coinbase?).to eq(true)
+        expect(test_block.txs.first.out_tx.address).to eq("moDu6EtnGGpcTEkNZRJbytr9rJA4H49VRe")
+        expect(@wallet.valid_address?(test_block.txs.first.out_tx.address)).to eq(true)
+        expect(test_block.txs.first.out_tx.address).not_to eq("moDu6EtnGGpcTEkNZRJbytr9rJA4H49VR3")
       end
 
       it 'should deny the json string if the hash field is invalid' do
