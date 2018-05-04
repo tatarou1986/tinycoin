@@ -1,11 +1,24 @@
 # -*- coding: utf-8 -*-
-require 'json'
-
 module Tinycoin::Core
   class Tx
     attr_reader :in_tx
     attr_reader :out_tx
-    attr_reader :hash
+    attr_reader :tx_id
+
+    def self.parse_from_hashs arry
+      arry.map {|t| Tx.new.parse_from_hash(t)}
+    end
+
+    def parse_from_hash hash
+      begin
+        @tx_id  = hash.fetch("txid").to_i(16)
+        @in_tx  = TxIn.new.parse_from_hash(hash.fetch("vin"))
+        @out_tx = TxOut.new.parse_from_hash(hash.fetch("vout"))
+        self
+      rescue KeyError
+        raise Tinycoin::Errors::InvalidFieldFormat
+      end
+    end
 
     def set_in tx_in
       @in_tx = tx_in
@@ -21,10 +34,6 @@ module Tinycoin::Core
       # digest = Digest::SHA256.digest(blk_tx.to_binary_s)
       # @signature ||= TxValidator.sign_data(wallet.key, digest)
       # @signature
-    end
-
-    def to_json
-      to_hash.to_json
     end
 
     def initialize
@@ -64,8 +73,12 @@ module Tinycoin::Core
 
     def to_sha256hash
       blk_tx = generate_blktx
-      @hash ||= Digest::SHA256.hexdigest(Digest::SHA256.digest(blk_tx.to_binary_s)).to_i(16)
-      @hash
+      @tx_id ||= Digest::SHA256.hexdigest(Digest::SHA256.digest(blk_tx.to_binary_s)).to_i(16)
+      @tx_id
+    end
+
+    def to_json
+      to_hash.to_json
     end
 
     def to_hash

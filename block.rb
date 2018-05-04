@@ -6,6 +6,7 @@ module Tinycoin::Core
     attr_accessor :blkblock
     attr_accessor :jsonstr
     attr_accessor :genesis
+    attr_accessor :txs
     
     attr_accessor :next, :prev
 
@@ -21,6 +22,7 @@ module Tinycoin::Core
       obj.prev      = []
       obj.next      = []
       obj.hash      = nil
+      obj.txs       = []
       return obj
     end
 
@@ -36,6 +38,7 @@ module Tinycoin::Core
       obj.prev    = []
       obj.next    = []
       obj.hash    = nil
+      obj.txs     = []
       return obj
     end
 
@@ -56,6 +59,7 @@ module Tinycoin::Core
       obj.prev      = []
       obj.next      = []
       obj.hash      = nil
+      obj.txs       = if hashed_json["txs"] then Tx.parse_from_hashs(hashed_json["txs"]) else raise Tinycoin::Errors::InvalidFieldFormat end
       if include_hash
         hash = hashed_json["hash"].to_i(16)
         raise Tinycoin::Errors::InvalidFieldFormat if hash == 0
@@ -68,6 +72,14 @@ module Tinycoin::Core
     def self.validate_block_hash block, hash_hexstr
       truehash = Digest::SHA256.hexdigest(Digest::SHA256.digest(block.to_binary_s)).to_i(16)
       truehash == hash_hexstr.to_i(16) ? true : false
+    end
+
+    def add_tx_as_first tx
+      @txs[0] = tx
+    end
+
+    def add_tx tx
+      @txs << tx
     end
 
     def to_binary_s
@@ -90,9 +102,16 @@ module Tinycoin::Core
     end
 
     def to_hash
-      {type: "block", height: @height, prev_hash: @prev_hash.to_s(16).rjust(64, '0'), 
-        hash: to_sha256hash_s, 
-        nonce: @nonce, bits: @bits, time: @time, jsonstr: @jsonstr}
+      { type:      "block",
+        height:    @height,
+        prev_hash: @prev_hash.to_s(16).rjust(64, '0'), 
+        hash:      to_sha256hash_s, 
+        nonce:     @nonce,
+        bits:      @bits,
+        time:      @time,
+        txs:       @txs.map {|t| t.to_hash},
+        jsonstr:   @jsonstr
+      }
     end
 
     def to_json

@@ -8,6 +8,9 @@ require 'json'
 module Tinycoin::Core
   autoload :Block, "./block.rb"
 
+  # ブロック作成用
+  autoload :BlockBuilder, "./block_builder.rb"
+
   # トランザクション自体を表すクラス
   autoload :Tx, "./tx.rb"
   autoload :TxIn, "./tx_in.rb"

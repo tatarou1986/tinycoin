@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-require 'json'
-
 module Tinycoin::Core
   class TxOut
     attr_reader :script_pubkey # 振出人の公開鍵と署名が含まれる
@@ -12,8 +10,18 @@ module Tinycoin::Core
         @type          = :coinbase
         @amount        = Tinycoin::Core::MINER_REWARD_AMOUNT
         @script_pubkey = Script.generate_coinbase_out
-      else
-        raise Tinycoin::Errors::NotImplemented
+      end
+    end
+
+    def parse_from_hash hash
+      begin
+        @type          = :coinbase if hash.fetch("type") == "coinbase"
+        @amount        = hash.fetch("value")
+        @script_pubkey = hash.fetch("scriptPubKey").fetch("asm")
+        @address       = hash.fetch("scriptPubKey").fetch("address")
+        self
+      rescue KeyError
+        raise Tinycoin::Errors::InvalidFieldFormat
       end
     end
 
@@ -26,7 +34,7 @@ module Tinycoin::Core
         {
           type: "coinbase",
           value: @amount.to_s.to_i(10),
-          scriptSig: {
+          scriptPubKey: {
             asm: @script_pubkey.to_s,
             address: @address.to_s
           }

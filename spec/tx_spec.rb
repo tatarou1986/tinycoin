@@ -50,10 +50,15 @@ describe "Tinycoin::Core::Tx" do
 
     # p tx.to_json
     tx = Tinycoin::Core::TxBuilder.make_coinbase(wallet)
-    p tx.to_json
     expect(tx.is_coinbase?).to eq(true)
   end
 end
 
 describe "Tinycoin::Core::TxValidator" do
+end
+
+describe "Tinycoin::Core::BlockBuilder" do
+  it "should generate a block that includes a genesis tx for miner by BlockBuilder" do
+    expect(@block.to_json).to eq(jsonstr)
+  end
 end

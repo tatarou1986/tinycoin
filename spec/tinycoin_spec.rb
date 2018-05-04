@@ -37,7 +37,7 @@ describe Tinycoin do
         g = Tinycoin::Core::Block.new_genesis()
 
         jsonstr=<<JSON
-{"type":"block","height":0,"prev_hash":"0000000000000000000000000000000000000000000000000000000000000000","hash":"#{g.to_sha256hash_s}","nonce":8826,"bits":520093695,"time":1461025176,"jsonstr":""}
+{"type":"block","height":0,"prev_hash":"0000000000000000000000000000000000000000000000000000000000000000","hash":"#{g.to_sha256hash_s}","nonce":8826,"bits":520093695,"time":1461025176,"txs":[],"jsonstr":""}
 JSON
         jsonstr = JSON.parse(jsonstr).to_json
         expect(@genesis.to_json).to eq(jsonstr)
@@ -89,6 +89,7 @@ JSON
   "nonce": 1264943,
   "bits": 26229296,
   "time": 1458902575,
+  "txs": [],
   "jsonstr": ""
 }
 JSON
@@ -108,7 +109,19 @@ JSON
                                                      payloadstr = "")
         orig_block_hash_str = orig_block.to_sha256hash_s
 
+        @wallet = Tinycoin::Core::Wallet.new  
+        @wallet.generate_key_pair
         
+        @hash = []
+        @hash[0] = "0000000000000000000000000000000000000000000000000000000000000000"
+        @block = Tinycoin::Core::BlockBuilder.make_block_as_miner(
+              @wallet,
+              @hash[0],
+              1264943,
+              26229296,
+              1458902575,
+              0
+        )
         jsonstr=<<JSON
 { 
   "type": "block",
@@ -118,6 +131,13 @@ JSON
   "nonce": 1264943,
   "bits": 26229296,
   "time": 1458902575,
+  "txs" :[{"txid" : "1596d82958b4b5474565627bc40dd23f48aa50a375ba06b25e4b8ad953105f51",
+           "vin"  :{"type": "coinbase",
+                    "scriptSig" : {"asm": "OP_NOP"}},
+           "vout" :{"type"  : "coinbase",
+                    "value" : 1,
+                    "scriptPubKey" :{"asm": "OP_PUSH true", "address": "" }}
+          }],
   "jsonstr": ""
 }
 JSON
@@ -129,6 +149,9 @@ JSON
         expect(test_block.bits).to eq(26229296)
         expect(test_block.jsonstr).to eq("")
         expect(test_block.to_sha256hash_s).to eq(orig_block_hash_str)
+
+        expect(test_block.txs.size).to eq(1)
+        expect(test_block.txs.first.is_coinbase?).to eq(true)
       end
 
       it 'should deny the json string if the hash field is invalid' do
@@ -150,6 +173,7 @@ JSON
   "nonce": 1264943,
   "bits": 26229296,
   "time": 1458902575,
+  "txs": [],
   "jsonstr": ""
 }
 JSON
@@ -160,7 +184,7 @@ JSON
 
   describe "BlockChain" do
     before :each do
-      @hash = []      
+      @hash = []     
       @hash[0] = "0000000000000000000000000000000000000000000000000000000000000000"
       @hash[1] = "0000000000000000000000000000000000000000000000000000000000000001"
       @hash[2] = "0000000000000000000000000000000000000000000000000000000000000002"

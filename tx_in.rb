@@ -1,5 +1,3 @@
-require 'json'
-
 module Tinycoin::Core
   class TxIn
     attr_reader :type
@@ -9,6 +7,16 @@ module Tinycoin::Core
       if coinbase
         @type       = :coinbase
         @script_sig = Script.generate_coinbase_in
+      end
+    end
+
+    def parse_from_hash hash
+      begin
+        @type       = :coinbase if hash.fetch("type") == "coinbase"
+        @script_sig = hash.fetch("scriptSig").fetch("asm")
+        self
+      rescue KeyError
+        raise Tinycoin::Errors::InvalidFieldFormat
       end
     end
 

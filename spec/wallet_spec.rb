@@ -17,7 +17,6 @@ describe "Tinycoin::Core::Wallet" do
   it 'should return key pairs' do
     @wallet = Tinycoin::Core::Wallet.new
     address = @wallet.address
-    puts "address: #{address}"
     expect(address).not_to eq(nil)
   end
 
