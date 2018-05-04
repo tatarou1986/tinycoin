@@ -10,6 +10,11 @@ module Tinycoin::Core
 
   # トランザクション自体を表すクラス
   autoload :Tx, "./tx.rb"
+  autoload :TxIn, "./tx_in.rb"
+  autoload :TxOut, "./tx_out.rb"
+
+  # トランザクション作成器
+  autoload :TxBuilder, "./tx_builder.rb"
 
   # トランザクションの検証器
   autoload :TxValidator, "./tx_validator.rb"

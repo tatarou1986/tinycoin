@@ -6,6 +6,7 @@ module Tinycoin::Core
       [
        "OP_DUP",
        "OP_PUSH",
+       "OP_NOP",
        "OP_RETURN"
       ]
     
@@ -40,6 +41,10 @@ module Tinycoin::Core
       else
         raise Tinycoin::Errors::InvalidOpcode 
       end
+    end
+
+    def op_nop stack, rest_script
+      rest_script
     end
     
     def op_push stack, rest_script

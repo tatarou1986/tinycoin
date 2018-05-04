@@ -1,7 +1,9 @@
+# -*- coding: utf-8 -*-
+
 module Tinycoin::Types
-  class BulkTx < BinData::Record
-    endian :little
-  end
+  # class BulkTx < BinData::Record
+  #   endian :little
+  # end
   
   class BulkBlock < BinData::Record
     endian :little
@@ -14,12 +16,24 @@ module Tinycoin::Types
     uint64 :nonce
   end
 
-  class BulkTx < BinData::Record
+  class BulkTxIn < BinData::Record
     endian :little
-    uint32 :signer_pubkey_size, :value => lambda { signer_pubkey.length }
-    array  :signer_pubkey, :type => :uint8
-    uint32 :signature_size, :value => lambda { signature.length }
-    array  :signature, :type => :uint8
+    uint32 :script_len
+    string :script_pubkey, :read_length => :script_len
+  end
+
+  class BulkTxOut < BinData::Record
+    endian :little
     uint64 :amount
+    uint32 :script_len
+    string :script_pubkey, :read_length => :script_len
+    bit160 :address # 払い出し先のアドレス
+  end
+
+  class BulkTx < BinData::Record
+    endian       :little
+    bit256       :tx_id
+    bulk_tx_out  :tx_out
+    bulk_tx_in   :tx_in
   end
 end

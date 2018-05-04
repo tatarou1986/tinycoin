@@ -6,12 +6,18 @@ describe "Tinycoin::Core::Wallet" do
   it 'should generate a key pair by secp256k1' do
     @wallet = Tinycoin::Core::Wallet.new
     pair = @wallet.generate_key_pair
+    privkey_hex = @wallet.private_key
+    pubkey_hex  = @wallet.public_key
+
     expect(pair).not_to eq(nil)
+    expect(privkey_hex).not_to eq(nil)
+    expect(pubkey_hex).not_to  eq(nil)
   end
 
   it 'should return key pairs' do
     @wallet = Tinycoin::Core::Wallet.new
     address = @wallet.address
+    puts "address: #{address}"
     expect(address).not_to eq(nil)
   end
 
