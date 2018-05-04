@@ -23,6 +23,11 @@ module Tinycoin::Core
       encode_base58(get_address(public_key))
     end
 
+    def valid_address? address
+      decode_base58(address) rescue return false
+      true
+    end
+
     def encode_base58(hex)
       leading_zero_bytes  = (hex.match(/^([0]+)/) ? $1 : '').size / 2
       ("1"*leading_zero_bytes) + int_to_base58( hex.to_i(16) )

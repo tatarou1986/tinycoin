@@ -63,5 +63,4 @@ describe "Tinycoin::Core::BlockBuilder" do
     @wallet.address
     coinbase = Tinycoin::Core::TxBuilder.make_coinbase(@wallet)
   end
-  
 end
