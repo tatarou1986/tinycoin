@@ -59,6 +59,9 @@ end
 
 describe "Tinycoin::Core::BlockBuilder" do
   it "should generate a block that includes a genesis tx for miner by BlockBuilder" do
-    expect(@block.to_json).to eq(jsonstr)
+    @wallet = Tinycoin::Core::Wallet.new
+    @wallet.address
+    coinbase = Tinycoin::Core::TxBuilder.make_coinbase(@wallet)
   end
+  
 end
