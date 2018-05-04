@@ -233,12 +233,16 @@ module Tinycoin::Node
       @self_info = nil
       @tx_pool = nil
       
+      # 自分のウォレット
+      @wallet = Tinycoin::Core::Wallet.new
+      @wallet.generate_key_pair
+      
       # blockchain周り。genesis (創始) blockや、blockchainを表すclassなど
       @genesis    = Tinycoin::Core::Block.new_genesis
       @blockchain = Tinycoin::Core::BlockChain.new(@genesis)
-      @miner      = Tinycoin::Miner.new(@genesis, @blockchain, @tx_pool) # TODO: tx_poolがnilなので実装しないと
+      @miner      = Tinycoin::Miner.new(@genesis, @blockchain, @tx_pool, @wallet) # TODO: tx_poolがnilなので実装しないと
       
-      @mining_start_time = nil     
+      @mining_start_time = nil
 
       log.debug { "loading networks..."  }
       read_config(config_path)

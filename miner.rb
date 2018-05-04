@@ -9,10 +9,11 @@ module Tinycoin
     attr_reader :blockchain
     attr_reader :genesis
 
-    def initialize genesis, blockchain, tx_pool
+    def initialize genesis, blockchain, tx_pool, wallet
       @genesis    = genesis
       @blockchain = blockchain
       @tx_pool    = tx_pool
+      @wallet     = wallet
     end
 
     def log
@@ -22,11 +23,6 @@ module Tinycoin
 
     def do_mining
       bits = @blockchain.head_info_array.last
-      # TODO: payloadstrってのが要はblockに含めるtransactionである
-      # payloadstrとtransactionの管理機構をどうするのかちゃんと考える必要がある
-      # transactionPoolってのが必要で、そこからblockchainまだ記述されていないvalidなtransactionを得て
-      # Blockを追加することになるだろう
-      payloadstr = "" # @tx_pool.get_poolみたいな感じで
       target = Tinycoin::Core::BlockChain.get_target(bits).first
 
       log.info { "current target: #{target} (0x#{bits.to_s(16)})" }
@@ -48,12 +44,11 @@ module Tinycoin
         h = Digest::SHA256.hexdigest(Digest::SHA256.digest(d.to_binary_s)).to_i(16)
         
         if h <= t
-          found = [h.to_s(16).rjust(64, '0'), nonce]         
-          block = Tinycoin::Core::Block.new_block(prev_hash, nonce, bits, inttime, prev_height + 1, payloadstr)
-
+          found = [h.to_s(16).rjust(64, '0'), nonce]
+          block = Tinycoin::Core::BlockBuilder.make_block_as_miner(@wallet, prev_hash, nonce, bits, inttime, prev_height + 1)
           begin
             log.info { "\e[33m Mining success! (nonce: #{found[1]})\e[0m Try to append block(#{block.height}, #{block.to_sha256hash_s})" }
-            @blockchain.maybe_append_block(prev_hash, block)
+            @blockchain.maybe_append_block(prev_hash, block, true)
             log.info { "\e[32m Block(#{block.height}, #{block.to_sha256hash_s} additional success \e[0m)" }
           rescue Tinycoin::Errors::NoAvailableBlockFound => e
             log.debug { "\e[31m Failed to append new block(#{block.to_sha256hash_s}). \e[0m No such prev_block(#{prev_height}, #{prev_hash}). initialize miner and then restart" }
