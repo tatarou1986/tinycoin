@@ -64,7 +64,7 @@ module Tinycoin::Core
     end
 
     def to_binary_s
-      generate_blktx.to_binary_s
+      generate_blk.to_binary_s
     end
 
     def to_sha256hash_s
@@ -72,8 +72,8 @@ module Tinycoin::Core
     end
 
     def to_sha256hash
-      blk_tx = generate_blktx
-      @tx_id ||= Digest::SHA256.hexdigest(Digest::SHA256.digest(blk_tx.to_binary_s)).to_i(16)
+      blk_tx = generate_blk
+      @tx_id = Digest::SHA256.hexdigest(Digest::SHA256.digest(blk_tx.to_binary_s)).to_i(16)
       @tx_id
     end
 
@@ -89,12 +89,14 @@ module Tinycoin::Core
       }
     end
 
-    private
-    def generate_blktx
+    def generate_blk
       # raise Tinycoin::Errors::NoSignedTx unless @signature
       # pubkey = @signer_pubkey.unpack("C*")
-      @blk_tx_in = Tinycoin::Types::BulkTxOut.new(amount: 1, )
-      @blk_tx ||= Tinycoin::Types::BulkTx.new
+      @blk_tx = Tinycoin::Types::BulkTx.new(
+            tx_id:  0,
+            tx_out: @out_tx.generate_blk,
+            tx_in:  @in_tx.generate_blk
+      )
       @blk_tx
     end
   end

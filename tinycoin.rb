@@ -13,6 +13,18 @@ module Tinycoin
     main = Node::Main.new(config_path)
     main.start
   end
+
+  def self.do_genesis_mining
+    log = Tinycoin::Logger.create("connection")
+    Tinycoin::Miner.do_genesis_mining(log)
+  end
 end
 
-Tinycoin::create(Dir.pwd + "/config.yml")
+if ARGV.size > 0
+  if ARGV[0] == "g"
+    Tinycoin::do_genesis_mining
+    exit(0)
+  end
+else
+  Tinycoin::create(Dir.pwd + "/config.yml")
+end

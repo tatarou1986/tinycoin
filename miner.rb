@@ -70,8 +70,8 @@ module Tinycoin
       return found
     end
 
-    def generate_genesis_block
-      target = Tinycoin::Core::BlockChain.get_target(GENESIS_BITS).first
+    def self.do_genesis_mining log
+      target = Tinycoin::Core::BlockChain.get_target(Tinycoin::Core::GENESIS_BITS).first
       
       log.info { "target: " + target }
       
@@ -85,19 +85,24 @@ module Tinycoin
       
       until found
         log.info { sprintf("trying... %d \r", nonce) }
-#        $stdout.print sprintf("trying... %d \r", nonce)
-        d = Tinycoin::Types::BulkBlock.new(nonce: nonce, block_id: 0,
-                                           time: inttime, bits: GENESIS_BITS,
-                                           prev_hash: 0, strlen: 0, payloadstr: "")
+        #        $stdout.print sprintf("trying... %d \r", nonce)
+        d = Tinycoin::Core::Block.new_block(
+                 prev_hash = "0000000000000000000000000000000000000000000000000000000000000000",
+                 nonce = nonce,
+                 bits = Tinycoin::Core::GENESIS_BITS,
+                 time = inttime,                                           
+                 height = 0,
+                 payloadstr = "",
+        )
         h = Digest::SHA256.hexdigest(Digest::SHA256.digest(d.to_binary_s)).to_i(16)
-
+        
         if h <= t
           found = [h.to_s(16).rjust(64, '0'), nonce]
           break
         end
         nonce += 1
       end
-      log.info { "genesis hash: #{found[0]}, nonce: #{found[1]}" }
+      log.info { "genesis hash: time: #{inttime}, #{found[0]}, nonce: #{found[1]}" }
     end
     
   end

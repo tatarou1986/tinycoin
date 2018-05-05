@@ -37,7 +37,7 @@ describe "Tinycoin::Core::Block" do
         g = Tinycoin::Core::Block.new_genesis()
 
         jsonstr=<<JSON
-{"type":"block","height":0,"prev_hash":"0000000000000000000000000000000000000000000000000000000000000000","hash":"#{g.to_sha256hash_s}","nonce":8826,"bits":520093695,"time":1461025176,"txs":[],"jsonstr":""}
+{"type":"block","height":0,"prev_hash":"0000000000000000000000000000000000000000000000000000000000000000","hash":"#{g.to_sha256hash_s}","nonce":#{Tinycoin::Core::GENESIS_NONCE},"bits":520093695,"time":#{Tinycoin::Core::GENESIS_TIME},"txs":[],"jsonstr":""}
 JSON
         jsonstr = JSON.parse(jsonstr).to_json
         expect(@genesis.to_json).to eq(jsonstr)
@@ -58,7 +58,14 @@ JSON
   context "when a block has been given" do
     describe '#to_sha256hash_s' do
       it 'should make the sha256 hash' do
-        block = Tinycoin::Core::Block.new_block("0000000000000000000000000000000000000000000000000000000000000000", 8826, 520093695, 1461025176, 0, "")
+        block = Tinycoin::Core::Block.new_block(
+               prev_hash  = "0000000000000000000000000000000000000000000000000000000000000000",
+               nonce      = Tinycoin::Core::GENESIS_NONCE,
+               bits       = Tinycoin::Core::GENESIS_BITS,
+               time       = Tinycoin::Core::GENESIS_TIME,
+               height     = 0,
+               payloadstr = ""                                               
+        )
         expect(block.to_sha256hash_s()).to eq(Tinycoin::Core::GENESIS_HASH)
       end
     end
@@ -101,27 +108,40 @@ JSON
   context "when a good json has been given" do
     describe "#parse_json" do
       it 'should accept the json string' do
-        orig_block = Tinycoin::Core::Block.new_block(prev_hash = "0000000000000000000000000000000000000000000000000000000000000000", 
-                                                     nonce     = 1264943, 
-                                                     bits      = 26229296,
-                                                     time      = 1458902575, 
-                                                     height    = 0, 
-                                                     payloadstr = "")
-        orig_block_hash_str = orig_block.to_sha256hash_s
+        @hash = []
+        @hash[0] = "0000000000000000000000000000000000000000000000000000000000000000"
+        orig_block = Tinycoin::Core::Block.new_block(
+                prev_hash = @hash[0],
+                nonce     = 1264943, 
+                bits      = 26229296,
+                time      = 1458902575, 
+                height    = 0, 
+                payloadstr = ""
+        )
 
         @wallet = Tinycoin::Core::Wallet.new  
         @wallet.generate_key_pair
         
-        @hash = []
-        @hash[0] = "0000000000000000000000000000000000000000000000000000000000000000"
+        @tx = Tinycoin::Core::Tx.new
+        
+        tx_in  = Tinycoin::Core::TxIn.new(coinbase = true)
+        tx_out = Tinycoin::Core::TxOut.new
+        tx_out.set_coinbase!(@wallet)
+
+        @tx.set_in(tx_in)
+        @tx.set_out(tx_out)
+
+        orig_block.add_tx_as_first(@tx)
+        orig_block_hash_str = orig_block.to_sha256hash_s
+       
         @block = Tinycoin::Core::BlockBuilder.make_block_as_miner(
-                                                                  @wallet,
-                                                                  @hash[0],
-                                                                  1264943,
-                                                                  26229296,
-                                                                  1458902575,
-                                                                  0
-                                                                  )
+                @wallet,
+                @hash[0],
+                1264943,
+                26229296,
+                1458902575,
+                0
+        )
         jsonstr=<<JSON
 { 
   "type": "block",
@@ -131,12 +151,12 @@ JSON
   "nonce": 1264943,
   "bits": 26229296,
   "time": 1458902575,
-  "txs" :[{"txid" : "1596d82958b4b5474565627bc40dd23f48aa50a375ba06b25e4b8ad953105f51",
+  "txs" :[{"txid" : "55f3d8d464b70de976ef828b5d31225babe532adf76f46440e4ce0e857d6fdc4",
            "vin"  :{"type": "coinbase",
                     "scriptSig" : {"asm": "OP_NOP"}},
            "vout" :{"type"  : "coinbase",
                     "value" : 1,
-                    "scriptPubKey" :{"asm": "OP_PUSH true", "address": "moDu6EtnGGpcTEkNZRJbytr9rJA4H49VRe" }}
+                    "scriptPubKey" :{"asm": "OP_PUSH true", "address": "#{@wallet.address}" }}
           }],
   "jsonstr": ""
 }
@@ -152,9 +172,12 @@ JSON
 
         expect(test_block.txs.size).to eq(1)
         expect(test_block.txs.first.is_coinbase?).to eq(true)
-        expect(test_block.txs.first.out_tx.address).to eq("moDu6EtnGGpcTEkNZRJbytr9rJA4H49VRe")
+        expect(test_block.txs.first.out_tx.address).to eq(@wallet.address)
         expect(@wallet.valid_address?(test_block.txs.first.out_tx.address)).to eq(true)
         expect(test_block.txs.first.out_tx.address).not_to eq("moDu6EtnGGpcTEkNZRJbytr9rJA4H49VR3")
+
+        # BlockIdがvalidであるはず
+        # IxIdがvalidであるはず
       end
 
       it 'should deny the json string if the hash field is invalid' do

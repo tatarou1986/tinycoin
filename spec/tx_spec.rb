@@ -27,7 +27,8 @@ describe "Tinycoin::Core::TxOut" do
     wallet = Tinycoin::Core::Wallet.new
     wallet.generate_key_pair
     
-    tx_out = Tinycoin::Core::TxOut.new(coinbase = true)
+    tx_out = Tinycoin::Core::TxOut.new
+    tx_out.set_coinbase!(wallet)
     expect(tx_out).not_to eq(nil)
   end
 end

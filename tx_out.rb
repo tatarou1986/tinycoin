@@ -1,16 +1,20 @@
 # -*- coding: utf-8 -*-
+2# -*- coding: utf-8 -*-
 module Tinycoin::Core
   class TxOut
     attr_reader :script_pubkey # 振出人の公開鍵と署名が含まれる
-    attr_reader :address # 受取人アドレス
+    attr_reader :address # 受取人アドレス (base58の文字列)
     attr_reader :amount
     
-    def initialize coinbase = false
-      if coinbase
-        @type          = :coinbase
-        @amount        = Tinycoin::Core::MINER_REWARD_AMOUNT
-        @script_pubkey = Script.generate_coinbase_out
-      end
+    def initialize
+      @type = :unknown
+    end
+
+    def set_coinbase! wallet
+      @type          = :coinbase
+      @amount        = Tinycoin::Core::MINER_REWARD_AMOUNT
+      @script_pubkey = Script.generate_coinbase_out
+      @address       = wallet.address
     end
 
     def parse_from_hash hash
@@ -23,6 +27,10 @@ module Tinycoin::Core
       rescue KeyError
         raise Tinycoin::Errors::InvalidFieldFormat
       end
+    end
+
+    def to_binary_s
+      generate_blk.to_binary_s
     end
 
     def to_json
@@ -45,6 +53,15 @@ module Tinycoin::Core
           type: "unknown"
         }
       end
+    end
+    
+    def generate_blk
+      Tinycoin::Types::BulkTxOut.new(
+          amount: @amount,
+          script_len: @script_pubkey.to_s.size,
+          script_pubkey: @script_pubkey.to_s,
+          address: Wallet.decode_base58(@address).to_i(16)
+      )
     end
   end
 end

@@ -39,12 +39,12 @@ module Tinycoin::Core
   # POW_DIFFICULTY_BLOCKSPAN = 2 # blocks
 
   ## target: 0000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-  ## mining genesis hash time: 2016-04-19 09:19:36 +0900 (unixtime: 1461025176)
-  ## genesis hash: 0000610c19db37b3352ef55d87bc22426c8fa0a7333e08658b4a7a9b95bc54cf, nonce: 8826
-  GENESIS_HASH  = "0000610c19db37b3352ef55d87bc22426c8fa0a7333e08658b4a7a9b95bc54cf"
-  GENESIS_NONCE = 8826
+  ## mining genesis hash time: 2018-05-05 23:52:35 (unixtime: 1525531912)
+  ## genesis hash: 0000d739b4627badcfa12f9d9976554d0c0e9f7a8106f53d8d1b4920a0300ab4, nonce: 90605
+  GENESIS_HASH  = "0000d739b4627badcfa12f9d9976554d0c0e9f7a8106f53d8d1b4920a0300ab4"
+  GENESIS_NONCE = 90605
   GENESIS_BITS  = 0x1effffff
-  GENESIS_TIME  = 1461025176
+  GENESIS_TIME  = 1525531912
 
   MINER_REWARD_AMOUNT = 1
 

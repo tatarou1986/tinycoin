@@ -20,30 +20,33 @@ module Tinycoin::Core
 
     def address
       generate_key_pair
-      encode_base58(get_address(public_key))
+      Wallet.encode_base58(get_address(public_key))
     end
 
     def valid_address? address
-      decode_base58(address) rescue return false
+      Wallet.decode_base58(address) rescue return false
       true
     end
 
-    def encode_base58(hex)
+    def self.encode_base58(hex)
       leading_zero_bytes  = (hex.match(/^([0]+)/) ? $1 : '').size / 2
       ("1"*leading_zero_bytes) + int_to_base58( hex.to_i(16) )
     end
 
-    def decode_base58(base58_val)
+    def self.decode_base58(base58_val)
       s = base58_to_int(base58_val).to_s(16); s = (s.bytesize.odd? ? '0'+s : s)
       s = '' if s == '00'
       leading_zero_bytes = (base58_val.match(/^([1]+)/) ? $1 : '').size
       s = ("00"*leading_zero_bytes) + s  if leading_zero_bytes > 0
       s
     end
-    alias_method :base58_to_hex, :decode_base58
+
+    def self.base58_to_hex(base58_val)
+      decode_base58(base58_val)
+    end
 
     private
-    def int_to_base58(int_val, leading_zero_bytes=0)
+    def self.int_to_base58(int_val, leading_zero_bytes=0)
       alpha = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
       base58_val, base = '', alpha.size
       while int_val > 0
@@ -53,7 +56,7 @@ module Tinycoin::Core
       base58_val
     end
 
-    def base58_to_int(base58_val)
+    def self.base58_to_int(base58_val)
       alpha = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
       int_val, base = 0, alpha.size
       base58_val.reverse.each_char.with_index do |char,index|

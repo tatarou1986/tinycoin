@@ -24,6 +24,10 @@ module Tinycoin::Core
       to_hash.to_json
     end
 
+    def to_binary_s
+      generate_blk.to_binary_s
+    end
+
     def to_hash
       if @type == :coinbase
         {
@@ -37,6 +41,13 @@ module Tinycoin::Core
           type: "unknown"
         }
       end
+    end
+    
+    def generate_blk
+      Tinycoin::Types::BulkTxIn.new(
+          script_len: @script_sig.to_s.size,
+          script_sig: @script_sig.to_s
+      )
     end
   end
 end

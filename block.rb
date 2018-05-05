@@ -118,16 +118,22 @@ module Tinycoin::Core
         jsonstr:   @jsonstr
       }
     end
-
     def to_json
       to_hash.to_json
     end
 
     private
     def generate_blkblock
-      @blkblock ||= Tinycoin::Types::BulkBlock.new(block_id: @height, time: @time, bits: @bits,
-                                                   prev_hash: @prev_hash, strlen: @jsonstr.size(),
-                                                   payloadstr: @jsonstr, nonce: @nonce)
+      @blkblock = Tinycoin::Types::BulkBlock.new(
+           block_id:   @height,
+           time:       @time,
+           bits:       @bits,
+           prev_hash:  @prev_hash,
+           strlen:     @jsonstr.size(),
+           payloadstr: @jsonstr,
+           nonce:      @nonce,
+           txs:        @txs.map {|t| t.generate_blk},
+      )
       return @blkblock
     end
   end
