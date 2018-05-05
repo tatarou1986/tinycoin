@@ -3,7 +3,7 @@ module Tinycoin::Node
   class Main
     TIMERS_INTERVAL = {
       ping: 1,
-      request_block: 1,
+      request_block: 0.5,
       connect: 5
     }
     
@@ -87,16 +87,29 @@ module Tinycoin::Node
     end
 
     # 定期的にpingを送る
-    def worker_ping
+    def worker_ping force = false
       ## 1. 他のノードが自分より大きなHeightをもっているかチェックする
-      @connections.shuffle.select{ |conn| conn.out? }.each{ |node| node.send_ping }
+      @connections.shuffle.select{ |conn| conn.out? }.each{|node|
+        if force
+          node.send_ping
+        else
+          # 有効なRPCを受けてもいない、送ってもいない状態が5秒以上続いたらpingを送る
+          if (Time.now - node.info.latest_rpc_time) > 5
+            node.send_ping
+          end
+        end
+      }
     end
 
     def worker_request_block
       best_block = @blockchain.best_block
       @connections.shuffle.select {|conn| conn.out? && best_block.height < conn.info.best_height }.each{|node|
         log.debug { "\e[35m Found higher block(#{node.info.best_height}, #{node.info.best_block_hash})\e[0m at Node(#{node.info})" }
-        node.send_request_block(best_block.height + 1)
+        
+        # リクエストは一人に送れればいいので、成功したらループを抜ける
+        if node.send_request_block(best_block.height + 1)
+          return
+        end
       }      
     end
 
@@ -151,6 +164,11 @@ module Tinycoin::Node
         EM.defer do
           start_web_server @web
         end
+
+        # 起動時は、全員に対して強制的にpingを送る
+        EM.schedule {
+          worker_ping(true)
+        }
         
         # マイナー（採掘器）を起動
         EM.add_timer(MINING_START_INTERVAL) do
