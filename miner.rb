@@ -32,15 +32,24 @@ module Tinycoin
 
       time = Time.now
       inttime = time.to_i
+
+      prev_hash        = @blockchain.winner_block_head.to_sha256hash_s
+      prev_height      = @blockchain.winner_block_head.height
+      
+      txs = [Tinycoin::Core::TxBuilder.make_coinbase(@wallet)]
+
+      d = Tinycoin::Core::Block.new_block(
+                prev_hash = prev_hash,
+                nonce = nonce,
+                bits = bits,
+                time = inttime,
+                height = prev_height + 1,
+                payloadstr = "",
+      )
+      txs.each {|tx| d.add_tx(tx)}
       
       until found
-        prev_hash_binary = @blockchain.winner_block_head.to_sha256hash()
-        prev_hash        = @blockchain.winner_block_head.to_sha256hash_s()
-        prev_height      = @blockchain.winner_block_head.height
-
-        d = Tinycoin::Types::BulkBlock.new(nonce: nonce, block_id: prev_height + 1,
-                                           time: inttime, bits: bits,
-                                           prev_hash: prev_hash_binary, strlen: 0, payloadstr: "")
+        d.nonce = nonce
         h = Digest::SHA256.hexdigest(Digest::SHA256.digest(d.to_binary_s)).to_i(16)
         
         if h <= t
