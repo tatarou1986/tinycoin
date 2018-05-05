@@ -111,7 +111,14 @@ module Tinycoin::Core
     end
 
     def maybe_append_block prev_hash, newblock, from_miner = false
-      @block_append_lock.synchronize { add_block(prev_hash, newblock, from_miner) }
+      @block_append_lock.synchronize {
+        # 一度jsonに変換してからvalidateする。無駄だが今はとりあえずこうする
+        ok = Tinycoin::Core::Block.parse_json(newblock.to_json)
+
+        Tinycoin::Core::TxValidator.validate_txs(ok.txs)
+        
+        add_block(prev_hash, ok, from_miner)
+      }
     end
 
     # blockを追加する。(miner) 自分が採掘したblockを追加する場合か

@@ -61,6 +61,16 @@ module Tinycoin
             log.info { "\e[32m Block(#{block.height}, #{block.to_sha256hash_s} additional success \e[0m)" }
           rescue Tinycoin::Errors::NoAvailableBlockFound => e
             log.debug { "\e[31m Failed to append new block(#{block.to_sha256hash_s}). \e[0m No such prev_block(#{prev_height}, #{prev_hash}). initialize miner and then restart" }
+          rescue Tinycoin::Errors::InvalidBlock => e
+            # 自分が採掘したブロックなのにinvalidなのは明らかにおかしい。バグ
+            log.fatal { "\e[31m Failed to append new block(#{block.to_sha256hash_s}). Invalid block" }
+            log.fatal { "dump block: #{block.to_json}"}
+            exit(-1)
+          rescue Tinycoin::Errors::InvalidTx => e
+            # 自分が採掘したブロックなのにinvalidなのは明らかにおかしい。バグ
+            log.fatal { "\e[31m Failed to append new block(#{block.to_sha256hash_s}). Invalid Tx" }
+            log.fatal { "dump block: #{block.to_json}"}
+            exit(-1)
           rescue Tinycoin::Errors::ChainBranchingDetected => e
             log.debug { 
               "\e[31m Failed to append new block(#{block.to_sha256hash_s}). \e[0m" + 
