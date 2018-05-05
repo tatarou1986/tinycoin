@@ -200,7 +200,7 @@ JSON
  {"type":"block","height":1,"prev_hash":"0000000000000000000000000000000000000000000000000000000000000000","hash":"000011ec7a674f4fb539f1b1a2023b88da2618e01b123dddb9f0ec652ff7eef7","nonce":70368,"bits":26229296,"time":1525540800,"txs":[{"txid":"c60647b15b72b21b14df9be576fd6891397e7cc886b546fa5ab46e0ac8ce30b3","vin":{"type":"coinbase","scriptSig":{"asm":"OP_NOP"}},"vout":{"type":"coinbase","value":1,"scriptPubKey":{"asm":"OP_PUSH true","address":"4K9pXkyqoJL97UXoPaNFy4MXvYW5"}}}],"jsonstr":""}
 JSON
 
-    @block = Tinycoin::Core::Block.validate_block_json(jsonstr)
+    @block = Tinycoin::Core::Block.validate_block_json(jsonstr, Tinycoin::Core::GENESIS_BITS)
     expect(@block).not_to eq(nil)
 
     expect(@block.prev_hash).to eq(0)
@@ -221,10 +221,9 @@ JSON
  {"type":"block","height":1,"prev_hash":"0000000000000000000000000000000000000000000000000000000000000000","hash":"000011ec7a674f4fb539f1b1a2023b88da2618e01b123dddb9f0ec652ff7eef9","nonce":70368,"bits":26229296,"time":1525540800,"txs":[{"txid":"c60647b15b72b21b14df9be576fd6891397e7cc886b546fa5ab46e0ac8ce30b3","vin":{"type":"coinbase","scriptSig":{"asm":"OP_NOP"}},"vout":{"type":"coinbase","value":1,"scriptPubKey":{"asm":"OP_PUSH true","address":"4K9pXkyqoJL97UXoPaNFy4MXvYW5"}}}],"jsonstr":""}
 JSON
     
-    expect{ Tinycoin::Core::Block.validate_block_json(jsonstr) }.to raise_error(Tinycoin::Errors::InvalidBlock)
+    expect{ Tinycoin::Core::Block.validate_block_json(jsonstr, Tinycoin::Core::GENESIS_BITS) }.to raise_error(Tinycoin::Errors::InvalidBlock)
   end
 end
-
 
 describe "Tinycoin::Core::BlockBuilder" do
   it "should generate a block that includes a genesis tx for miner by BlockBuilder" do

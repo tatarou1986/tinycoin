@@ -11,10 +11,17 @@ module Tinycoin::Core
     
     attr_accessor :next, :prev
 
-    def self.validate_block_json json_str
+    def self.validate_block_json json_str, current_bits
       ## ブロックのハッシュとdiffcultyの検証を行う
       hashed = JSON.parse(json_str)
-      new_block_from_hash(hashed, include_hash = true)
+      block = new_block_from_hash(hashed, include_hash = true)
+
+      target = Tinycoin::Core::BlockChain.get_target(current_bits).first.to_i(16)
+      if block.bits <= target
+        return block
+      else
+        raise Tinycoin::Errors::InvalidBlock
+      end
     end
                                               
     def self.new_genesis()
