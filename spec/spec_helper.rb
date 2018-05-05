@@ -5,7 +5,7 @@ module Tinycoin
   autoload :Node, "node.rb"
   autoload :Core, "blockchain.rb"
   autoload :Types, "types.rb"
-  autoload :Logger, "logger.rb"
+  autoload :Logger, "./logger.rb"
   
   class TestBlock
     attr_accessor :next

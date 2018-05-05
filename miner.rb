@@ -15,11 +15,22 @@ module Tinycoin
       @tx_pool    = tx_pool
       @wallet     = wallet
       @cancel     = false
+      @mining_wait_time = 0
     end
 
     def log
       @log ||= Tinycoin::Logger.create("miner")
       @log
+    end
+
+    # 乱数時間だけ待たせる
+    def choke! cancel = false
+      if cancel
+        @mining_wait_time = 0
+      else
+        @mining_wait_time = rand(0.5)
+      end
+      @mining_wait_time
     end
 
     def cancel!
@@ -53,6 +64,7 @@ module Tinycoin
       )
       txs.each {|tx| d.add_tx(tx)}
       @canceled = false
+      @mining_wait_time = 0
       
       until found && @canceled
         d.nonce = nonce
@@ -90,6 +102,7 @@ module Tinycoin
           end
           break
         end
+        sleep @mining_wait_time
         nonce += 1
       end
 

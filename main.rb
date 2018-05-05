@@ -40,7 +40,7 @@ module Tinycoin::Node
       
       # blockchain周り。genesis (創始) blockや、blockchainを表すclassなど
       @genesis    = Tinycoin::Core::Block.new_genesis
-      @blockchain = Tinycoin::Core::BlockChain.new(@genesis)
+      @blockchain = Tinycoin::Core::BlockChain.new(@genesis, self)
       @miner      = Tinycoin::Miner.new(@genesis, @blockchain, @tx_pool, @wallet) # TODO: tx_poolがnilなので実装しないと
       
       @mining_start_time = nil

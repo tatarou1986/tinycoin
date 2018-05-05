@@ -52,11 +52,12 @@ module Tinycoin::Core
     attr_reader :head_info_array
     attr_reader :winner_block_head
     
-    def initialize genesis_block
+    def initialize genesis_block, front = nil
       @root = genesis_block                         # 創始 (genesis) ブロック
       @winner_block_head = genesis_block            # blockchainの一番新しいブロック
       @head_info_array = [@root, 0, 0, @root.bits]  # [ブロック, height, difficulty再設定後からカウントしたheight, 現在の難易度]
       @block_append_lock = Mutex.new
+      @front = front
     end
 
     def log
@@ -129,23 +130,23 @@ module Tinycoin::Core
       # miner (自分が採掘したblock) からのblock追加の場合
       # 自分から積極的にblockchainの分岐に加担するべきではないので
       # 分岐してしまう場合は、ブロック追加しない
-      if from_miner
-        if block.next.size == 0
-          block.next << newblock
-          find_winner_block_head(true) # bestBlockが更新されたかもしれないのでチェックする
-          return newblock
+      # ...と思っていたが、上のアルゴリズムだと、ノード全員が分岐していた場合、
+      # どのノードもブロックを追加しなくなって、誰もブロックをマイニングせずに
+      # 結果、全ノードデッドロックするので、ブランチを検出した場合、マイナーからの追加は行わない
+      # という戦略はまずい。最適な戦略は、自分のマイナーにたいして、乱数で
+      # 待ち時間を追加して、各ノードのマイニング速度を調整して、誰かが勝つように促すしかない
+      if block.next.size >= 1
+        if @front
+          choke_time = @front.miner.choke!
+          log.info { "\e[31m blockchain has been branched. execute choking to my miner(#{choke_time}) \e[0m" }
         else
-          raise Tinycoin::Errors::ChainBranchingDetected
+          log.warn { "\e[31m blockchain has been branched but does not execute choking due to front is null \e[0m" }
         end
-      else
-        # minerからのブロック追加ではない場合（他ノードからのブロック追加）は
-        # 自分が無知なだけで、自分よりはるかに高いheightを持っているノードがいるかも知れないので
-        # 分岐するのはやむなしとして追加する
-        block.next << newblock
-        
-        find_winner_block_head(true) # bestBlockが更新されたかもしれないのでチェックする
-        return newblock
       end
+
+      block.next << newblock
+      find_winner_block_head(true) # bestBlockが更新されたかもしれないのでチェックする
+      return newblock
     end
 
     def find_winner_block_head(refresh = false)
@@ -187,7 +188,7 @@ module Tinycoin::Core
             deepest_block = bl
             current_depth = dp
             current_cdp   = cdp
-            deppest_block_difficulty = diff
+            deepest_block_difficulty = diff
           end
         }
 

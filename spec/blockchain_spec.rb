@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-require 'spec_helper'
+require_relative 'spec_helper.rb'
 
 describe "Tinycoin::Core::BlockChain" do
   before :each do
