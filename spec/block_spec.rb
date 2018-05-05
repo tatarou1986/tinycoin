@@ -216,12 +216,36 @@ JSON
   end
 
   it "should validate a block from json 2" do
-    # hashが違う
+    # blockのhashが微妙に違う
     jsonstr=<<JSON
  {"type":"block","height":1,"prev_hash":"0000000000000000000000000000000000000000000000000000000000000000","hash":"000011ec7a674f4fb539f1b1a2023b88da2618e01b123dddb9f0ec652ff7eef9","nonce":70368,"bits":26229296,"time":1525540800,"txs":[{"txid":"c60647b15b72b21b14df9be576fd6891397e7cc886b546fa5ab46e0ac8ce30b3","vin":{"type":"coinbase","scriptSig":{"asm":"OP_NOP"}},"vout":{"type":"coinbase","value":1,"scriptPubKey":{"asm":"OP_PUSH true","address":"4K9pXkyqoJL97UXoPaNFy4MXvYW5"}}}],"jsonstr":""}
 JSON
     
     expect{ Tinycoin::Core::Block.validate_block_json(jsonstr, Tinycoin::Core::GENESIS_BITS) }.to raise_error(Tinycoin::Errors::InvalidBlock)
+  end
+
+  it "should validate block and tx from json" do
+    jsonstr=<<JSON
+ {"type":"block","height":1,"prev_hash":"0000000000000000000000000000000000000000000000000000000000000000","hash":"000011ec7a674f4fb539f1b1a2023b88da2618e01b123dddb9f0ec652ff7eef7","nonce":70368,"bits":26229296,"time":1525540800,"txs":[{"txid":"c60647b15b72b21b14df9be576fd6891397e7cc886b546fa5ab46e0ac8ce30b3","vin":{"type":"coinbase","scriptSig":{"asm":"OP_NOP"}},"vout":{"type":"coinbase","value":1,"scriptPubKey":{"asm":"OP_PUSH true","address":"4K9pXkyqoJL97UXoPaNFy4MXvYW5"}}}],"jsonstr":""}
+JSON
+
+    @block = Tinycoin::Core::Block.validate_block_json(jsonstr, Tinycoin::Core::GENESIS_BITS)
+    expect(@block).not_to eq(nil)
+
+    expect(@block.prev_hash).to eq(0)
+    expect(@block.height).to    eq(1)
+    expect(@block.nonce).to     eq(70368)
+    expect(@block.bits).to      eq(26229296)
+    expect(@block.jsonstr).to   eq("")
+    expect(@block.time).to      eq(1525540800)
+    expect(@block.txs.first.is_coinbase?).to eq(true)
+    expect(@block.txs.first.out_tx.address).to eq("4K9pXkyqoJL97UXoPaNFy4MXvYW5")
+    expect(Tinycoin::Core::Wallet.valid_address?(@block.txs.first.out_tx.address)).to eq(true)
+    expect(@block.txs.first.out_tx.address).not_to eq("moDu6EtnGGpcTEkNZRJbytr9rJA4H49VR3")
+
+    # トランザクションのvalidationも行ってみる
+    ret = Tinycoin::Core::TxValidator.validate_txs(@block.txs)
+    expect(ret).to eq(true)
   end
 end
 
