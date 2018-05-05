@@ -66,7 +66,7 @@ module Tinycoin
       @canceled = false
       @mining_wait_time = 0
       
-      until found && @canceled
+      until found || @canceled
         d.nonce = nonce
         h = Digest::SHA256.hexdigest(Digest::SHA256.digest(d.to_binary_s)).to_i(16)
         
