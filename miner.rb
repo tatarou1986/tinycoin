@@ -104,6 +104,41 @@ module Tinycoin
       end
       log.info { "genesis hash: time: #{inttime}, #{found[0]}, nonce: #{found[1]}" }
     end
+
+
+    def self.do_mining_with_txs log, wallet, prev_hash, bits, time, height, txs, payloadstr = ""
+      target = Tinycoin::Core::BlockChain.get_target(Tinycoin::Core::GENESIS_BITS).first
+      log.info { "target: " + target }
+
+      found = nil
+      nonce = 0
+      t = target.to_i(16)
+
+      log.info { "mining genesis hash time: #{time} (unixtime: #{time.to_i})" }
+      inttime = time.to_i
+
+      until found
+        log.info { sprintf("trying... %d \r", nonce) }
+        #        $stdout.print sprintf("trying... %d \r", nonce)
+        d = Tinycoin::Core::Block.new_block(
+                prev_hash = prev_hash,
+                nonce = nonce,
+                bits = bits,
+                time = inttime,
+                height = height,
+                payloadstr = payloadstr,
+        )
+        txs.each {|tx| d.add_tx(tx)}
+        h = Digest::SHA256.hexdigest(Digest::SHA256.digest(d.to_binary_s)).to_i(16)
+
+        if h <= t
+          found = [h.to_s(16).rjust(64, '0'), nonce]
+          break
+        end
+        nonce += 1
+      end
+      log.info { "genesis hash: time: #{inttime}, #{found[0]}, nonce: #{found[1]}, wallet: #{wallet.address}" }
+    end
     
   end
 end
