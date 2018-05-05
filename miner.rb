@@ -116,6 +116,7 @@ module Tinycoin
 
       log.info { "mining genesis hash time: #{time} (unixtime: #{time.to_i})" }
       inttime = time.to_i
+      d = nil
 
       until found
         log.info { sprintf("trying... %d \r", nonce) }
@@ -137,7 +138,7 @@ module Tinycoin
         end
         nonce += 1
       end
-      log.info { "genesis hash: time: #{inttime}, #{found[0]}, nonce: #{found[1]}, wallet: #{wallet.address}" }
+      log.info {  d.to_json }
     end
     
   end
