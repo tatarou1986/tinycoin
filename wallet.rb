@@ -23,7 +23,7 @@ module Tinycoin::Core
       Wallet.encode_base58(get_address(public_key))
     end
 
-    def valid_address? address
+    def self.valid_address? address
       Wallet.decode_base58(address) rescue return false
       true
     end

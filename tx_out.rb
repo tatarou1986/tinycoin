@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-2# -*- coding: utf-8 -*-
 module Tinycoin::Core
   class TxOut
     attr_reader :script_pubkey # 振出人の公開鍵と署名が含まれる

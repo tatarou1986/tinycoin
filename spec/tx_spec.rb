@@ -1,9 +1,6 @@
 # -*- coding: utf-8 -*-
 require_relative 'spec_helper.rb'
 
-describe "Tinycoin::Core::TxValidator" do
-end
-
 def generate_key_pair
   # [private_key, public_key]
   ["3b714930efe7663ab4d8ea33926471302b494bf0e90713ec562d969146219c99",
@@ -167,3 +164,5 @@ JSON
   end
 end
 
+describe "Tinycoin::Core::TxValidator" do
+end

@@ -1,20 +1,7 @@
 # -*- coding: utf-8 -*-
 require_relative 'spec_helper.rb'
 
-describe "Tinycoin::Core::Block" do
-  #   context "when a connection handler has been given" do
-  #     it 'should generate a packet as json' do
-  #       node = Tinycoin::Node::NodeInfo.new("0.0.0.0", 9999)
-  #       connections = []
-  #       conn = Tinycoin::Node::ConnectionHandler.new(node, connections, nil)
-  #       expected_json_str=<<JSON
-  # {"type":"block","height":0,"prev_hash":"0000000000000000000000000000000000000000000000000000000000000000","nonce":8826,"bits":520093695,"time":1461025176,"jsonstr":""}
-  # JSON
-  #       json = conn.make_command_to_json("ping", height: 10, highest_hash: "0xfffffffffffff")
-  #       expect(json).to eq(expected_json_str)
-  #     end
-  #   end
-  
+describe "Tinycoin::Core::Block" do  
   context "when the genesis hash has been given" do
     before do
       @genesis = Tinycoin::Core::Block.new_genesis()
@@ -173,7 +160,7 @@ JSON
         expect(test_block.txs.size).to eq(1)
         expect(test_block.txs.first.is_coinbase?).to eq(true)
         expect(test_block.txs.first.out_tx.address).to eq(@wallet.address)
-        expect(@wallet.valid_address?(test_block.txs.first.out_tx.address)).to eq(true)
+        expect(Tinycoin::Core::Wallet.valid_address?(test_block.txs.first.out_tx.address)).to eq(true)
         expect(test_block.txs.first.out_tx.address).not_to eq("moDu6EtnGGpcTEkNZRJbytr9rJA4H49VR3")
 
         # BlockIdがvalidであるはず
@@ -208,7 +195,36 @@ JSON
     end
   end
 
+  it "should validate a block from json" do
+    jsonstr=<<JSON
+ {"type":"block","height":1,"prev_hash":"0000000000000000000000000000000000000000000000000000000000000000","hash":"000011ec7a674f4fb539f1b1a2023b88da2618e01b123dddb9f0ec652ff7eef7","nonce":70368,"bits":26229296,"time":1525540800,"txs":[{"txid":"c60647b15b72b21b14df9be576fd6891397e7cc886b546fa5ab46e0ac8ce30b3","vin":{"type":"coinbase","scriptSig":{"asm":"OP_NOP"}},"vout":{"type":"coinbase","value":1,"scriptPubKey":{"asm":"OP_PUSH true","address":"4K9pXkyqoJL97UXoPaNFy4MXvYW5"}}}],"jsonstr":""}
+JSON
+
+    @block = Tinycoin::Core::Block.validate_block_json(jsonstr)
+    expect(@block).not_to eq(nil)
+
+    expect(@block.prev_hash).to eq(0)
+    expect(@block.height).to    eq(1)
+    expect(@block.nonce).to     eq(70368)
+    expect(@block.bits).to      eq(26229296)
+    expect(@block.jsonstr).to   eq("")
+    expect(@block.time).to      eq(1525540800)
+    expect(@block.txs.first.is_coinbase?).to eq(true)
+    expect(@block.txs.first.out_tx.address).to eq("4K9pXkyqoJL97UXoPaNFy4MXvYW5")
+    expect(Tinycoin::Core::Wallet.valid_address?(@block.txs.first.out_tx.address)).to eq(true)
+    expect(@block.txs.first.out_tx.address).not_to eq("moDu6EtnGGpcTEkNZRJbytr9rJA4H49VR3")
+  end
+
+  it "should validate a block from json 2" do
+    # hashが違う
+    jsonstr=<<JSON
+ {"type":"block","height":1,"prev_hash":"0000000000000000000000000000000000000000000000000000000000000000","hash":"000011ec7a674f4fb539f1b1a2023b88da2618e01b123dddb9f0ec652ff7eef9","nonce":70368,"bits":26229296,"time":1525540800,"txs":[{"txid":"c60647b15b72b21b14df9be576fd6891397e7cc886b546fa5ab46e0ac8ce30b3","vin":{"type":"coinbase","scriptSig":{"asm":"OP_NOP"}},"vout":{"type":"coinbase","value":1,"scriptPubKey":{"asm":"OP_PUSH true","address":"4K9pXkyqoJL97UXoPaNFy4MXvYW5"}}}],"jsonstr":""}
+JSON
+    
+    expect{ Tinycoin::Core::Block.validate_block_json(jsonstr) }.to raise_error(Tinycoin::Errors::InvalidBlock)
+  end
 end
+
 
 describe "Tinycoin::Core::BlockBuilder" do
   it "should generate a block that includes a genesis tx for miner by BlockBuilder" do
@@ -224,7 +240,7 @@ describe "Tinycoin::Core::BlockBuilder" do
     expect(@block.time).to      eq(1458902575)
     expect(@block.txs.first.is_coinbase?).to eq(true)
     expect(@block.txs.first.out_tx.address).to eq(@wallet.address)
-    expect(@wallet.valid_address?(@block.txs.first.out_tx.address)).to eq(true)
+    expect(Tinycoin::Core::Wallet.valid_address?(@block.txs.first.out_tx.address)).to eq(true)
     expect(@block.txs.first.out_tx.address).not_to eq("moDu6EtnGGpcTEkNZRJbytr9rJA4H49VR3")
   end
 end

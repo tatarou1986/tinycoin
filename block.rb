@@ -11,6 +11,12 @@ module Tinycoin::Core
     
     attr_accessor :next, :prev
 
+    def self.validate_block_json json_str
+      ## ブロックのハッシュとdiffcultyの検証を行う
+      hashed = JSON.parse(json_str)
+      new_block_from_hash(hashed, include_hash = true)
+    end
+                                              
     def self.new_genesis()
       obj = self.new
       obj.genesis   = true

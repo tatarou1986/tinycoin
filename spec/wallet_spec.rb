@@ -19,9 +19,9 @@ describe "Tinycoin::Core::Wallet" do
     address = @wallet.address
     expect(address).not_to eq(nil)
 
-    expect(@wallet.valid_address?(address)).to eq(true)
+    expect(Tinycoin::Core::Wallet.valid_address?(address)).to eq(true)
     # base58じゃない文字列はwalletアドレスとして解釈されない
-    expect(@wallet.valid_address?("OOOOOOOOO")).to eq(false)
+    expect(Tinycoin::Core::Wallet.valid_address?("OOOOOOOOO")).to eq(false)
   end
 
   it 'should sign and validate signature from the wallet address' do

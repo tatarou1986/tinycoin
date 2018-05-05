@@ -5,8 +5,6 @@ module Tinycoin::Core
     # txidがvalidかどうかチェックする
     # +tx+ jsonからパース済みのTxインスタンス
     def self.validate_txs txs
-      wallet = Tinycoin::Core::Wallet.new
-
       # txsが0ということはありえない。少なくともcoinbaseは含む
       raise Tinycoin::Errors::InvalidTx if txs.size == 0
       
@@ -23,7 +21,7 @@ module Tinycoin::Core
           raise Tinycoin::Errors::InvalidTx unless tx.out_tx.amount == 1
           # addressがvalidであること
           raise Tinycoin::Errors::InvalidTx if tx.out_tx.address.size == 0
-          raise Tinycoin::Errors::InvalidTx unless wallet.valid_address?(tx.out_tx.address)
+          raise Tinycoin::Errors::InvalidTx unless Wallet.valid_address?(tx.out_tx.address)
 
           # coinbaseは処理済み
           coinbase_processed = true
