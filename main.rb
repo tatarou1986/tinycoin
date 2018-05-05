@@ -181,6 +181,9 @@ module Tinycoin::Node
           EM.defer do
             loop do
               found = @miner.do_mining
+              unless found
+                log.info { "\e[31m Canceled mining. Restart miner with new height \e[0m" }
+              end
               # TODO: nonceを使い果たした場合はBlockに含める時刻をずらしてnonce: 0からやり直す
             end
           end 

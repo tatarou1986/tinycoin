@@ -14,11 +14,16 @@ module Tinycoin
       @blockchain = blockchain
       @tx_pool    = tx_pool
       @wallet     = wallet
+      @cancel     = false
     end
 
     def log
       @log ||= Tinycoin::Logger.create("miner")
       @log
+    end
+
+    def cancel!
+      @canceled = true
     end
 
     def do_mining
@@ -47,8 +52,9 @@ module Tinycoin
                 payloadstr = "",
       )
       txs.each {|tx| d.add_tx(tx)}
+      @canceled = false
       
-      until found
+      until found && @canceled
         d.nonce = nonce
         h = Digest::SHA256.hexdigest(Digest::SHA256.digest(d.to_binary_s)).to_i(16)
         
@@ -86,7 +92,12 @@ module Tinycoin
         end
         nonce += 1
       end
-      return found
+
+      if @canceled
+        return nil
+      else
+        return found
+      end
     end
 
     def self.do_genesis_mining log

@@ -146,11 +146,14 @@ module Tinycoin::Node
           @front.blockchain.maybe_append_block_from_json(body.to_json)
           best_block = @front.blockchain.best_block
           log.info { "\e[32m Block(#{height}, #{hash}) additional success \e[0m, current bestBlock: Block(#{best_block.height}, #{best_block.to_sha256hash_s})" }
+          
+          @info.update_time!
+          
+          # マイナーにキャンセルを通知して、次のブロックの採掘に移行させる
+          @front.miner.cancel!
         rescue => e
           log.error { "\e[31m Failed to append the received block[#{height}, #{hash}].\e[0m reason: #{e}\n #{e.backtrace.join("\n")}" }
         end
-
-        @info.update_time!
         
       when 'txs'
         log.debug { "RPC[from#{sender}] receive transactions <--" }
