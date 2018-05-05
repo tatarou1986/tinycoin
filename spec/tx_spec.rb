@@ -167,10 +167,3 @@ JSON
   end
 end
 
-describe "Tinycoin::Core::BlockBuilder" do
-  it "should generate a block that includes a genesis tx for miner by BlockBuilder" do
-    @wallet = Tinycoin::Core::Wallet.new
-    @wallet.address
-    coinbase = Tinycoin::Core::TxBuilder.make_coinbase(@wallet)
-  end
-end

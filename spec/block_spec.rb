@@ -209,3 +209,22 @@ JSON
   end
 
 end
+
+describe "Tinycoin::Core::BlockBuilder" do
+  it "should generate a block that includes a genesis tx for miner by BlockBuilder" do
+    @wallet = Tinycoin::Core::Wallet.new
+    @wallet.address
+    @block = Tinycoin::Core::BlockBuilder.make_block_as_miner(@wallet, "0000000000000000000000000000000000000000000000000000000000000000", 1264943, 26229296, 1458902575, 1)
+    
+    expect(@block.prev_hash).to eq(0)
+    expect(@block.height).to    eq(1)
+    expect(@block.nonce).to     eq(1264943)
+    expect(@block.bits).to      eq(26229296)
+    expect(@block.jsonstr).to   eq("")
+    expect(@block.time).to      eq(1458902575)
+    expect(@block.txs.first.is_coinbase?).to eq(true)
+    expect(@block.txs.first.out_tx.address).to eq(@wallet.address)
+    expect(@wallet.valid_address?(@block.txs.first.out_tx.address)).to eq(true)
+    expect(@block.txs.first.out_tx.address).not_to eq("moDu6EtnGGpcTEkNZRJbytr9rJA4H49VR3")
+  end
+end
