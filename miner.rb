@@ -102,7 +102,10 @@ module Tinycoin
           end
           break
         end
-        sleep @mining_wait_time
+
+        if @mining_wait_time > 0.0
+          sleep @mining_wait_time
+        end
         nonce += 1
       end
 
