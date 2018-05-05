@@ -136,6 +136,13 @@ module Tinycoin::Core
       # という戦略はまずい。最適な戦略は、自分のマイナーにたいして、乱数で
       # 待ち時間を追加して、各ノードのマイニング速度を調整して、誰かが勝つように促すしかない
       if block.next.size >= 1
+
+        # すでに同一ブロックが存在する場合は追加しない
+        if block.next.detect {|b| b.to_sha256hash_s == newblock.to_sha256hash_s }
+          log.info { "\e[31m blockchain has already same block(#{newblock.to_sha256hash_s}). Cancel to append the block \e[0m" }
+          return newblock
+        end
+        
         if @front
           choke_time = @front.miner.choke!
           log.info { "\e[31m blockchain has been branched. execute choking to my miner(#{choke_time}) \e[0m" }
