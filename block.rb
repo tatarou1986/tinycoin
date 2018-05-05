@@ -115,6 +115,10 @@ module Tinycoin::Core
       to_sha256hash.to_s(16).rjust(64, '0')
     end
 
+    def prev_sha256hash_s
+      @prev_hash.to_s(16).rjust(64, '0')
+    end
+
     def refresh
       @blkblock = @hash = nil
     end

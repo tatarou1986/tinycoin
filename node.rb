@@ -131,7 +131,7 @@ module Tinycoin::Node
 
         begin
           log.info { "\e[36m Try to append block(#{height}, #{hash}) \e[0m "}
-          @front.blockchain.maybe_append_block_from_hash(body)
+          @front.blockchain.maybe_append_block_from_json(body.to_json)
           best_block = @front.blockchain.best_block
           log.info { "\e[32m Block(#{height}, #{hash}) additional success \e[0m, current bestBlock: Block(#{best_block.height}, #{best_block.to_sha256hash_s})" }
         rescue => e

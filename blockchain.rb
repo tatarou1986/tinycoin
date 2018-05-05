@@ -84,36 +84,34 @@ module Tinycoin::Core
       true
     end
 
-    def maybe_append_block_from_hash new_block_hash
-      @block_append_lock.synchronize {
-        block = Tinycoin::Core::Block.new_block_from_hash(new_block_hash, true)
+    # def maybe_append_block_from_hash new_block_hash
+    #   @block_append_lock.synchronize {
+    #     block = Tinycoin::Core::Block.new_block_from_hash(new_block_hash, true)
 
-        # TODO: トランザクションの検証
-        validate_block_txs(block)
+    #     # TODO: トランザクションの検証
+    #     validate_block_txs(block)
         
-        # TODO: diffictulyの検証
-        validate_block_diffictuly(block)
-      }
-    end
+    #     # TODO: diffictulyの検証
+    #     validate_block_diffictuly(block)
+    #   }
+    # end
 
     # ブロックの追加を試す
     # TODO: 要テスト
     def maybe_append_block_from_json new_block_json
       @block_append_lock.synchronize {
-        block = Tinycoin::Core::Block.parse_json(new_block_json, true)
+        ok = Tinycoin::Core::Block.validate_block_json(new_block_json, Tinycoin::Core::GENESIS_BITS)
 
-        # TODO: トランザクションの検証
-        validate_block_txs(block)
+        Tinycoin::Core::TxValidator.validate_txs(ok.txs)
         
-        # TODO: diffictulyの検証
-        validate_block_diffictuly(block)
+        add_block(ok.prev_sha256hash_s, ok)
       }
     end
 
     def maybe_append_block prev_hash, newblock, from_miner = false
       @block_append_lock.synchronize {
         # 一度jsonに変換してからvalidateする。無駄だが今はとりあえずこうする
-        ok = Tinycoin::Core::Block.parse_json(newblock.to_json)
+        ok = Tinycoin::Core::Block.validate_block_json(newblock.to_json, Tinycoin::Core::GENESIS_BITS)
 
         Tinycoin::Core::TxValidator.validate_txs(ok.txs)
         
