@@ -103,8 +103,13 @@ module Tinycoin::Node
 
     def worker_request_block
       best_block = @blockchain.best_block
-      @connections.shuffle.select {|conn| conn.out? && best_block.height < conn.info.best_height }.each{|node|
-        log.debug { "\e[35m Found higher block(#{node.info.best_height}, #{node.info.best_block_hash})\e[0m at Node(#{node.info})" }
+      @connections.shuffle.select {|conn|
+        conn.out? && best_block.height < conn.info.best_height }.each{|node|
+        
+        log.debug {
+          "\e[35m Found higher block(#{node.info.best_height}, " +
+          "#{node.info.best_block_hash})\e[0m at Node(#{node.info})"
+        }
         
         # リクエストは一人に送れればいいので、成功したらループを抜ける
         if node.send_request_block(best_block.height + 1)
