@@ -31,11 +31,13 @@ module Tinycoin::Node
     attr_accessor :best_block_hash
     attr_accessor :latest_rpc_time
     attr_reader :status
+    attr_accessor :next_height
 
     def initialize(ip, port)
       @sockaddr = [ip, port]
       @latest_rpc_time = Time.now
       @status = :idle
+      @next_height = 1
     end
 
     def update_time!
@@ -157,16 +159,29 @@ module Tinycoin::Node
         
         begin
           log.info { "\e[36m Try to append block(#{height}, #{hash}) \e[0m "}
+          
           @front.blockchain.maybe_append_block_from_json(body.to_json)
           best_block = @front.blockchain.best_block
-          log.info { "\e[32m Block(#{height}, #{hash}) additional success \e[0m, current bestBlock: Block(#{best_block.height}, #{best_block.to_sha256hash_s})" }
+          
+          log.info {
+            "\e[32m Block(#{height}, #{hash}) additional success \e[0m, " +
+            "current bestBlock: Block(#{best_block.height}, #{best_block.to_sha256hash_s})"
+          }
           
           @info.update_time!
           
           # マイナーにキャンセルを通知して、次のブロックの採掘に移行させる
           @front.miner.cancel!
+        rescue Tinycoin::Errors::NoAvailableBlockFound => e
+          # ブロックが分岐している！この場合はブロックチェーンを一から作り直して、一から同期
+          log.warn { "\e[31m maybe block has been branched. reconstruct blockchain \e[0m " }
+          @front.miner.cancel!
+          @front.init_blockchain!
+          
         rescue => e
-          log.error { "\e[31m Failed to append the received block[#{height}, #{hash}].\e[0m reason: #{e}\n #{e.backtrace.join("\n")}" }
+          log.error {
+            "\e[31m Failed to append the received block[#{height}, " +
+            "#{hash}].\e[0m reason: #{e}\n #{e.backtrace.join("\n")}" }
         end
 
         @info.set_idle!

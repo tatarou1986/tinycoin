@@ -39,14 +39,18 @@ module Tinycoin::Node
       @wallet.generate_key_pair
       
       # blockchain周り。genesis (創始) blockや、blockchainを表すclassなど
-      @genesis    = Tinycoin::Core::Block.new_genesis
-      @blockchain = Tinycoin::Core::BlockChain.new(@genesis, self)
-      @miner      = Tinycoin::Miner.new(@genesis, @blockchain, @tx_pool, @wallet) # TODO: tx_poolがnilなので実装しないと
+      init_blockchain!
       
       @mining_start_time = nil
 
       log.debug { "loading networks..."  }
       read_config(config_path)
+    end
+
+    def init_blockchain!
+      @genesis    = Tinycoin::Core::Block.new_genesis
+      @blockchain = Tinycoin::Core::BlockChain.new(@genesis, self)
+      @miner      = Tinycoin::Miner.new(@genesis, @blockchain, @tx_pool, @wallet) # TODO: tx_poolがnilなので実装しないと
     end
 
     def get_ip if_name
