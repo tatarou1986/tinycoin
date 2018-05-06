@@ -108,21 +108,27 @@ module Tinycoin::Node
 
     def worker_request_block
       best_block = @blockchain.best_block
-      @connections.shuffle.select {|conn|
-        conn.out? && best_block.height < conn.info.best_height }.each{|node|
-        # TODO: ここで、heightは違うけどハッシュが異なる場合
-        # つまり、blockchainが分岐してしまっている場合は、そのブランチを取りに行かないといけない
-        if node.info.should_send?
+
+      # こちらからの接続 (out) かつ、最も高いbestHeightを持つノードを取り出す
+      # シャッフルしている理由は、最も高いbestHeightを持つノードが複数あった場合に
+      # 特定のノードにリクエストが集中しないようにするため
+      highest_node = @connections.shuffle.select{|conn|
+        conn.out?
+      }.max{|a, b|
+        a.info.best_height <=> b.info.best_height
+      }
+
+      if highest_node
+        # 最も高いbestHeightが自分のbestHeightより高かったら、ブロックを要求する
+        if highest_node.info.should_send? &&
+            highest_node.info.best_height > best_block.height
           log.debug {
-            "\e[35m Found higher block(#{node.info.best_height}, " +
-            "#{node.info.best_block_hash})\e[0m at Node(#{node.info})"
+            "\e[35m Found higher block(#{highest_node.info.best_height}, " +
+            "#{highest_node.info.best_block_hash})\e[0m at Node(#{highest_node.info})"
           }
-          # リクエストは一人に送れればいいので、成功したらループを抜ける
-          if node.send_request_block(best_block.height + 1)
-            return
-          end
+          highest_node.send_request_block(best_block.height + 1)
         end
-      }      
+      end
     end
 
     # 定期的に接続状態をチェックして、必要なら再接続
