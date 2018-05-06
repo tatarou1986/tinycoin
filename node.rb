@@ -30,14 +30,28 @@ module Tinycoin::Node
     attr_accessor :best_height
     attr_accessor :best_block_hash
     attr_accessor :latest_rpc_time
+    attr_reader :status
 
-    def initialize(ip, port) 
+    def initialize(ip, port)
       @sockaddr = [ip, port]
       @latest_rpc_time = Time.now
+      @status = :idle
     end
 
     def update_time!
       @latest_rpc_time = Time.now
+    end
+
+    def set_waiting!
+      @status = :waiting
+    end
+
+    def set_idle!
+      @status = :idle
+    end
+
+    def should_send?
+      @status == :idle
     end
 
     def to_s; "#{sockaddr[0]}:#{sockaddr[1]}"; end
@@ -154,6 +168,8 @@ module Tinycoin::Node
         rescue => e
           log.error { "\e[31m Failed to append the received block[#{height}, #{hash}].\e[0m reason: #{e}\n #{e.backtrace.join("\n")}" }
         end
+
+        @info.set_idle!
         
       when 'txs'
         log.debug { "RPC[from#{sender}] receive transactions <--" }
@@ -173,7 +189,7 @@ module Tinycoin::Node
       json = make_command_to_json("ping")
       pkt = make_packet(json)
       send_data(pkt.to_binary_s)
-
+      
       @info.update_time!
     end
 
@@ -183,7 +199,7 @@ module Tinycoin::Node
       json = make_command_to_json("pong", best_height: best_block.height.to_i, best_block_hash: best_block.to_sha256hash_s.to_s)
       pkt = make_packet(json)
       send_data(pkt.to_binary_s)
-
+      
       @info.update_time!
     end
 
@@ -197,6 +213,7 @@ module Tinycoin::Node
         send_data(pkt.to_binary_s)
 
         @info.update_time!
+        @info.set_waiting!
       rescue => e
         log.error { "send_request_block error: #{e}\n#{e.backtrace.join("\n")}" }
         return false

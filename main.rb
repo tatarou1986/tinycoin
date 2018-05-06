@@ -96,6 +96,7 @@ module Tinycoin::Node
           # 有効なRPCを受けてもいない、送ってもいない状態が5秒以上続いたらpingを送る
           if (Time.now - node.info.latest_rpc_time) > 5
             node.send_ping
+            node.info.set_idle!
           end
         end
       }
@@ -105,15 +106,17 @@ module Tinycoin::Node
       best_block = @blockchain.best_block
       @connections.shuffle.select {|conn|
         conn.out? && best_block.height < conn.info.best_height }.each{|node|
-        
-        log.debug {
-          "\e[35m Found higher block(#{node.info.best_height}, " +
-          "#{node.info.best_block_hash})\e[0m at Node(#{node.info})"
-        }
-        
-        # リクエストは一人に送れればいいので、成功したらループを抜ける
-        if node.send_request_block(best_block.height + 1)
-          return
+        # TODO: ここで、heightは違うけどハッシュが異なる場合
+        # つまり、blockchainが分岐してしまっている場合は、そのブランチを取りに行かないといけない
+        if node.info.should_send?
+          log.debug {
+            "\e[35m Found higher block(#{node.info.best_height}, " +
+            "#{node.info.best_block_hash})\e[0m at Node(#{node.info})"
+          }
+          # リクエストは一人に送れればいいので、成功したらループを抜ける
+          if node.send_request_block(best_block.height + 1)
+            return
+          end
         end
       }      
     end
