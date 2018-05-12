@@ -14,6 +14,7 @@ module Tinycoin::Core
         }
       else
         # TODO: この場合は
+        raise Tinycoin::Errors::InvalidTx
       end
     end
     

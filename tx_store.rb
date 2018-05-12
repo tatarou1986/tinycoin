@@ -44,7 +44,7 @@ module Tinycoin::Core
 
     def all_uxto_json
       @store_lock.synchronize {
-        @tx_store.values.map {|v| v.to_json}.to_json
+        { uxtos: @tx_store.values.map {|v| v.to_hash } }.to_json
       }
     end
     

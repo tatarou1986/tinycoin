@@ -173,11 +173,10 @@ module Tinycoin::Node
         # serverを立ち上げる
         EM.start_server("0.0.0.0", PORT, ConnectionHandler, NodeInfo.new("0.0.0.0", PORT), @connections, :in, self)
 
-        @web = Tinycoin::Node::Web.new
-
         # Webサーバを立ち上げる
+        @web = Tinycoin::Node::Web.new(self)
         EM.defer do
-          start_web_server @web
+          start_web_server(@web)
         end
 
         # 起動時は、全員に対して強制的にpingを送る

@@ -80,8 +80,6 @@ module Tinycoin
               "\e[32m Block(#{newblock.height}, #{newblock.to_sha256hash_s}" +
               " additional success \e[0m)"
             }
-            # 採掘に成功したので、検証と、uxtoのストアに保存する
-            Tinycoin::Core::TxValidator.validate_and_store_uxto(newblock.txs, @tx_store)
           rescue Tinycoin::Errors::NoAvailableBlockFound => e
             log.debug {
               "\e[31m Failed to append new block(#{newblock.to_sha256hash_s})." +
