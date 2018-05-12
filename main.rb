@@ -16,7 +16,7 @@ module Tinycoin::Node
     attr_accessor :height
     attr_accessor :connections # 自分が接続している他のノードへのハンドラ一覧
     attr_reader :blockchain
-    attr_reader :tx_pool
+    attr_reader :tx_store
     attr_reader :miner
     attr_reader :self_info
     
@@ -32,7 +32,7 @@ module Tinycoin::Node
       @connections = []
 
       @self_info = nil
-      @tx_pool = nil
+      @tx_store = Tinycoin::Core::UXTOStore.new
       
       # 自分のウォレット
       @wallet = Tinycoin::Core::Wallet.new
@@ -50,7 +50,7 @@ module Tinycoin::Node
     def init_blockchain!
       @genesis    = Tinycoin::Core::Block.new_genesis
       @blockchain = Tinycoin::Core::BlockChain.new(@genesis, self)
-      @miner      = Tinycoin::Miner.new(@genesis, @blockchain, @tx_pool, @wallet) # TODO: tx_poolがnilなので実装しないと
+      @miner      = Tinycoin::Miner.new(@genesis, @blockchain, @tx_store, @wallet)
     end
 
     def get_ip if_name
@@ -111,7 +111,8 @@ module Tinycoin::Node
       @connections.shuffle.select {|conn|
         conn.out? && best_block.height < conn.info.best_height }.each{|node|
         # TODO: ここで、heightは違うけどハッシュが異なる場合
-        # つまり、blockchainが分岐してしまっている場合は、そのブランチを取りに行かないといけない
+        # つまり、blockchainが分岐してしまっている場合は、そのブランチ
+        # を取りに行かないといけない
         if node.info.should_send?
           log.debug {
             "\e[35m Found higher block(#{node.info.best_height}, " +
@@ -127,8 +128,10 @@ module Tinycoin::Node
 
     # 定期的に接続状態をチェックして、必要なら再接続
     def worker_connect
-      # 接続が絶たれる可能性や、タイミング問題（つなぎに行ったけど、接続先のサーバがまだ立ち上がってない）
-      # などがあるので、タイマーで定期的に接続状態をチェックして、接続が確立していなければ再接続を促すようにする
+      # 接続が絶たれる可能性や、タイミング問題
+      #（つなぎに行ったけど、接続先のサーバがまだ立ち上がってない）
+      # などがあるので、タイマーで定期的に接続状態をチェックして
+      # 接続が確立していなければ再接続を促すようにする
       connect_to_others
     end
     

@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 module Tinycoin::Core
-  class TxStore
+  class UXTOStore
     def initialize
       # valid済みのtx
-      @uxto_store = {}
+      @tx_store = {}
 
       # validじゃないtx
       @orphans_store = {}
@@ -18,7 +18,7 @@ module Tinycoin::Core
     def get_uxto_by_hash tx_hash
       @store_lock.synchronize {
         begin
-          @uxto_store.fetch(tx_hash)
+          @tx_store.fetch(tx_hash)
        rescue KeyError
           raise Tinycoin::Errors::NoSuchTx
         end
@@ -30,7 +30,7 @@ module Tinycoin::Core
         begin
           if pay_out
             uxto = @address_to_uxto.fetch(base58_str)
-            @uxto_store.fetch(uxto.to_sha256hash_s)
+            @tx_store.fetch(uxto.to_sha256hash_s)
             uxto
           else
             uxto = @address_to_uxto.fetch(base58_str)
@@ -44,7 +44,7 @@ module Tinycoin::Core
 
     def all_uxto_json
       @store_lock.synchronize {
-        @uxto_store.values.map {|v| v.to_json}.to_json
+        @tx_store.values.map {|v| v.to_json}.to_json
       }
     end
     
@@ -58,7 +58,7 @@ module Tinycoin::Core
     # +tx_out+ TxOutを入れる
     def put_uxto tx_hash, tx_out
       @store_lock.synchronize {
-        @uxto_store[tx_hash] = tx_out
+        @tx_store[tx_hash] = tx_out
 
         # wallet address -> tx_outの列も使う
         uxtos = @address_to_uxto[tx_out.address]

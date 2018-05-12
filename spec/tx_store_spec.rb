@@ -3,7 +3,7 @@ require_relative 'spec_helper.rb'
 
 describe "Tinycoin::Core::Tx" do
   it "should search store for tx_out" do
-    @store = Tinycoin::Core::TxStore.new
+    @store = Tinycoin::Core::UXTOStore.new
     @wallet = Tinycoin::Core::Wallet.new
     @wallet.generate_key_pair
 
