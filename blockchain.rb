@@ -139,7 +139,7 @@ module Tinycoin::Core
 
         # すでに同一ブロックが存在する場合は追加しない
         if block.next.detect {|b| b.to_sha256hash_s == newblock.to_sha256hash_s }
-          log.info { "\e[31m blockchain has already same block(#{newblock.to_sha256hash_s}). Cancel to append the block \e[0m" }
+          log.info { "\e[31m blockchain has already same block(#{newblock.height}, #{newblock.to_sha256hash_s}). Cancel to append the block \e[0m" }
           find_winner_block_head(true) # bestBlockが更新されたかもしれないのでチェックする
           return newblock
         end
