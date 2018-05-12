@@ -15,6 +15,7 @@ module Tinycoin::Core
   autoload :Tx, "./tx.rb"
   autoload :TxIn, "./tx_in.rb"
   autoload :TxOut, "./tx_out.rb"
+  autoload :TxStore, "./tx_store.rb"
 
   # トランザクション作成器
   autoload :TxBuilder, "./tx_builder.rb"

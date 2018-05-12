@@ -10,6 +10,7 @@ module Tinycoin::Errors
   class NoSignedTx < StandardError; end
   class InvalidOpcode < StandardError; end
   class InvalidTx < StandardError; end
+  class NoSuchTx < StandardError; end
 
   class NotImplemented < StandardError; end
 end

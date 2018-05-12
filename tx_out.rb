@@ -36,10 +36,25 @@ module Tinycoin::Core
       to_hash.to_json
     end
 
+    def to_binary_s
+      generate_blk.to_binary_s
+    end
+
+    def to_sha256hash_s
+      to_sha256hash.to_s(16).rjust(64, '0')
+    end
+
+    def to_sha256hash
+      blk_tx = generate_blk
+      @tx_id = Digest::SHA256.hexdigest(Digest::SHA256.digest(blk_tx.to_binary_s)).to_i(16)
+      @tx_id
+    end
+
     def to_hash
       if @type == :coinbase
         {
           type: "coinbase",
+          hash: to_sha256hash.to_s,
           value: @amount.to_s.to_i(10),
           scriptPubKey: {
             asm: @script_pubkey.to_s,
