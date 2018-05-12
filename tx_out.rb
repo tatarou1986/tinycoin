@@ -4,6 +4,7 @@ module Tinycoin::Core
     attr_reader :script_pubkey # 振出人の公開鍵と署名が含まれる
     attr_reader :address # 受取人アドレス (base58の文字列)
     attr_reader :amount
+    attr_reader :locktime
     
     def initialize
       @type = :unknown
@@ -14,12 +15,14 @@ module Tinycoin::Core
       @amount        = Tinycoin::Core::MINER_REWARD_AMOUNT
       @script_pubkey = Script.generate_coinbase_out
       @address       = wallet.address
+      @locktime      = Time.now.to_i
     end
 
     def parse_from_hash hash
       begin
         @type          = :coinbase if hash.fetch("type") == "coinbase"
         @amount        = hash.fetch("value")
+        @locktime      = hash.fetch("locktime")
         @script_pubkey = hash.fetch("scriptPubKey").fetch("asm")
         @address       = hash.fetch("scriptPubKey").fetch("address")
         self
@@ -54,8 +57,9 @@ module Tinycoin::Core
       if @type == :coinbase
         {
           type: "coinbase",
-          hash: to_sha256hash.to_s,
+          hash: to_sha256hash_s,
           value: @amount.to_s.to_i(10),
+          locktime: @locktime,
           scriptPubKey: {
             asm: @script_pubkey.to_s,
             address: @address.to_s
@@ -74,6 +78,7 @@ module Tinycoin::Core
           amount: @amount,
           script_len: @script_pubkey.to_s.size,
           script_pubkey: @script_pubkey.to_s,
+          locktime: @locktime,                                    
           address: Wallet.decode_base58(@address).to_i(16)
       )
     end
