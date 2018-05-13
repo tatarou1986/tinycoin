@@ -23,9 +23,6 @@
         </div>
         <div class="txs-view">
             <div id="txs">
-                <% @txs.each do |t| %>
-                    <p><%= escape_html "#{t.body} by #{t.user_id}" %></p>
-                <% end %>
             </div>
         </div>
         <script type="text/javascript">
@@ -37,12 +34,16 @@
              setInterval(function(){
                  var request = $.ajax({
                      type: 'GET',
-                     url: "/txs",
-                     data: {
-                         
+                     url: "/txs"
+                 }).done(function (res) {
+                     $("#txs").empty();
+                     for (var e of res.uxtos) {
+                         if (e.type == "coinbase") {
+                             $("#txs").prepend('<p>' + e.value + " takahashi" + ' into ' + e.scriptPubKey.address + '</p>');
+                         }
                      }
                  });
-             }, 3000);
+             }, 2000);
          
              // 送金処理
              $("#send-money").click(function(){
@@ -67,8 +68,7 @@
                          type: "GET",
                          url: "/txs"
                      }).done(function( res ){
-                         alert("not implemented")
-                         $("#comments").prepend('<p>' + escapeHTML(res.body) + ' by ' + escapeHTML(res.user_id) + '</p>');
+                         $("#txs").prepend('<p>' + escapeHTML(res.body) + ' by ' + escapeHTML(res.user_id) + '</p><');
                      });
                  });
              });

@@ -149,6 +149,14 @@ module Tinycoin::Node
 
     def start_web_server web
       @web_dispatch = Rack::Builder.app do
+        configure do
+          # logging is enabled by default in classic style applications,
+          # so `enable :logging` is not needed
+          file = File.new("#{settings.root}/log/web_#{settings.environment}.log", 'a+')
+          file.sync = true
+          use Rack::CommonLogger, file
+        end
+        
         map '/' do
           run web
         end
