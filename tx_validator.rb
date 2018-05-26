@@ -1,7 +1,23 @@
 # -*- coding: utf-8 -*-
 module Tinycoin::Core
   class TxValidator
+    def self.validate_and_store_uxto txs, tx_store
+      # トランザクションを検証する
+      ret = validate_txs(txs)
 
+      # txsすべてのtxがvalidである
+      if ret
+        txs.each {|tx|
+          # VMのスクリプト実行がすべて成功したので
+          # UXTOが生成されることになるので、UXTOをStoreに保存する
+          tx_store.put_uxto(tx.out_tx.to_sha256hash_s, tx.out_tx)
+        }
+      else
+        # TODO: この場合は
+        raise Tinycoin::Errors::InvalidTx
+      end
+    end
+    
     # txidがvalidかどうかチェックする
     # +tx+ jsonからパース済みのTxインスタンス
     def self.validate_txs txs

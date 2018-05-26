@@ -9,10 +9,10 @@ module Tinycoin
     attr_reader :blockchain
     attr_reader :genesis
 
-    def initialize genesis, blockchain, tx_pool, wallet
+    def initialize genesis, blockchain, tx_store, wallet
       @genesis    = genesis
       @blockchain = blockchain
-      @tx_pool    = tx_pool
+      @tx_store    = tx_store
       @wallet     = wallet
       @cancel     = false
       @mining_wait_time = 0
@@ -51,53 +51,61 @@ module Tinycoin
 
       prev_hash        = @blockchain.winner_block_head.to_sha256hash_s
       prev_height      = @blockchain.winner_block_head.height
-      
-      txs = [Tinycoin::Core::TxBuilder.make_coinbase(@wallet)]
 
-      d = Tinycoin::Core::Block.new_block(
-                prev_hash = prev_hash,
-                nonce = nonce,
-                bits = bits,
-                time = inttime,
-                height = prev_height + 1,
-                payloadstr = "",
+      ## tx_outからtxを作る機構がいる
+      ## txs = [Tinycoin::Core::TxBuilder.make_coinbase(@wallet)]
+      newblock = Tinycoin::Core::BlockBuilder.make_block_as_miner(
+             wallet      = @wallet,
+             prev_hash   = prev_hash,
+             nonce       = nonce,
+             bits        = bits,
+             ittime      = inttime,
+             prev_height = prev_height + 1
       )
-      txs.each {|tx| d.add_tx(tx)}
       @canceled = false
       @mining_wait_time = 0
       
       until found || @canceled
-        d.nonce = nonce
-        h = Digest::SHA256.hexdigest(Digest::SHA256.digest(d.to_binary_s)).to_i(16)
-        
+        newblock.nonce = nonce
+        h = Digest::SHA256.hexdigest(Digest::SHA256.digest(newblock.to_binary_s)).to_i(16)
         if h <= t
           found = [h.to_s(16).rjust(64, '0'), nonce]
-          block = Tinycoin::Core::BlockBuilder.make_block_as_miner(@wallet, prev_hash, nonce, bits, inttime, prev_height + 1)
           begin
-            log.info { "\e[33m Mining success! (nonce: #{found[1]})\e[0m Try to append block(#{block.height}, #{block.to_sha256hash_s})" }
-            @blockchain.maybe_append_block(prev_hash, block, true)
-            log.info { "\e[32m Block(#{block.height}, #{block.to_sha256hash_s} additional success \e[0m)" }
+            log.info {
+              "\e[33m Mining success! (nonce: #{found[1]})\e[0m" +
+              "Try to append block(#{newblock.height}, #{newblock.to_sha256hash_s})"
+            }
+            @blockchain.maybe_append_block(prev_hash, newblock, true)
+            log.info {
+              "\e[32m Block(#{newblock.height}, #{newblock.to_sha256hash_s}" +
+              " additional success \e[0m)"
+            }
           rescue Tinycoin::Errors::NoAvailableBlockFound => e
-            log.debug { "\e[31m Failed to append new block(#{block.to_sha256hash_s}). \e[0m No such prev_block(#{prev_height}, #{prev_hash}). initialize miner and then restart" }
+            log.debug {
+              "\e[31m Failed to append new block(#{newblock.to_sha256hash_s})." +
+              "\e[0m No such prev_block(#{prev_height}, #{prev_hash}). " + 
+              "initialize miner and then restart"
+            }
           rescue Tinycoin::Errors::InvalidBlock => e
             # 自分が採掘したブロックなのにinvalidなのは明らかにおかしい。バグ
-            log.fatal { "\e[31m Failed to append new block(#{block.to_sha256hash_s}). Invalid block" }
-            log.fatal { "dump block: #{block.to_json}"}
+            log.fatal { "\e[31m Failed to append new block(#{newblock.to_sha256hash_s}). Invalid block" }
+            log.fatal { "dump block: #{newblock.to_json}"}
             exit(-1)
           rescue Tinycoin::Errors::InvalidTx => e
             # 自分が採掘したブロックなのにinvalidなのは明らかにおかしい。バグ
-            log.fatal { "\e[31m Failed to append new block(#{block.to_sha256hash_s}). Invalid Tx" }
-            log.fatal { "dump block: #{block.to_json}"}
+            log.fatal { "\e[31m Failed to append new block(#{newblock.to_sha256hash_s}). Invalid Tx" }
+            log.fatal { "dump block: #{newblock.to_json}"}
             exit(-1)
           rescue Tinycoin::Errors::ChainBranchingDetected => e
             log.debug { 
-              "\e[31m Failed to append new block(#{block.to_sha256hash_s}). \e[0m" + 
-              "The blockchain branching has been detected. maybe we lose this mining turn (height: #{block.height})" + 
-              "Initialize miner and then restart with a new height (#{block.height + 1})\n" 
+              "\e[31m Failed to append new block(#{newblock.to_sha256hash_s}). \e[0m" + 
+              "The blockchain branching has been detected. maybe we lose this mining turn (height: #{newblock.height})" + 
+              "Initialize miner and then restart with a new height (#{newblock.height + 1})\n" 
             }
           rescue => e
             # block追加が失敗。マイナーを初期化して、次のブロック採掘に向かう
-            log.error { "m#{e}: \e[31m Failed to append new block(#{block.to_sha256hash_s}) \e[0m due to unknown error\n #{e.backtrace.join("\n")}" }
+            log.error { "#{e}: \e[31m Failed to append new block(#{newblock.to_sha256hash_s})" +
+              " \e[0m due to unknown error\n #{e.backtrace.join("\n")}" }
             break
           end
           break

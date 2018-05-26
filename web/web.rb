@@ -5,6 +5,14 @@ Bundler.require
 module Tinycoin::Node
   class Web < Sinatra::Base
     
+    def initialize front
+      @front = front
+      super
+    end
+
+    get "/favicon.ico" do
+    end
+    
     get '/' do
       @txs = []
       erb :index
@@ -17,7 +25,8 @@ module Tinycoin::Node
 
     # トランザクションを全部取得
     get '/txs' do
-      raise "NOT IMPLEMENTED"
+      content_type :json
+      @front.tx_store.all_uxto_json
     end
   end
 end

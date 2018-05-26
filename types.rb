@@ -14,6 +14,7 @@ module Tinycoin::Types
   class BulkTxOut < BinData::Record
     endian :little
     uint64 :amount
+    uint64 :locktime
     uint32 :script_len
     string :script_pubkey, :read_length => :script_len
     bit160 :address # 払い出し先のアドレス

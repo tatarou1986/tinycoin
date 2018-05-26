@@ -15,6 +15,7 @@ module Tinycoin::Core
   autoload :Tx, "./tx.rb"
   autoload :TxIn, "./tx_in.rb"
   autoload :TxOut, "./tx_out.rb"
+  autoload :UXTOStore, "./tx_store.rb"
 
   # トランザクション作成器
   autoload :TxBuilder, "./tx_builder.rb"
@@ -98,25 +99,40 @@ module Tinycoin::Core
     # end
 
     # ブロックの追加を試す
-    # TODO: 要テスト
+    # TODO: リファクタリング。名前を変える
     def maybe_append_block_from_json new_block_json
       @block_append_lock.synchronize {
-        ok = Tinycoin::Core::Block.validate_block_json(new_block_json, Tinycoin::Core::GENESIS_BITS)
+        begin
+          prev_hash = @winner_block_head.to_sha256hash_s
+          ok = Tinycoin::Core::Block.validate_block_json(new_block_json, Tinycoin::Core::GENESIS_BITS)
 
-        Tinycoin::Core::TxValidator.validate_txs(ok.txs)
-        
-        add_block(ok.prev_sha256hash_s, ok)
+          # 検証と、uxtoのストアに保存する
+          ret = Tinycoin::Core::TxValidator.validate_and_store_uxto(ok.txs, @front.tx_store)
+
+          if ret
+            add_block(prev_hash, ok)
+          end
+        rescue => e
+          log.error { "#{e}: \e[31m Failed to append new block(#{ok.to_sha256hash_s}) \e[0m due to unknown error\n #{e.backtrace.join("\n")}" }
+        end
       }
     end
 
+    # TODO: リファクタリング。名前を変える
     def maybe_append_block prev_hash, newblock, from_miner = false
       @block_append_lock.synchronize {
         # 一度jsonに変換してからvalidateする。無駄だが今はとりあえずこうする
-        ok = Tinycoin::Core::Block.validate_block_json(newblock.to_json, Tinycoin::Core::GENESIS_BITS)
-
-        Tinycoin::Core::TxValidator.validate_txs(ok.txs)
-        
-        add_block(prev_hash, ok, from_miner)
+        begin 
+          ok = Tinycoin::Core::Block.validate_block_json(newblock.to_json, Tinycoin::Core::GENESIS_BITS)
+          
+          # 採掘に成功したので、検証と、uxtoのストアに保存する
+          ret = Tinycoin::Core::TxValidator.validate_and_store_uxto(ok.txs, @front.tx_store)
+          if ret
+            add_block(prev_hash, ok, from_miner)
+          end
+        rescue => e
+          log.error { "#{e}: \e[31m Failed to append new block(#{ok.to_sha256hash_s}) \e[0m due to unknown error\n #{e.backtrace.join("\n")}" }
+        end
       }
     end
 
